@@ -1,0 +1,10 @@
+{
+  "retriever": "hybrid_retriever (BM25 + bge-m3 FAISS + RRF, parent-document)",
+  "kb": "data/kb.json",
+  "retrieval_unit": "chunk",
+  "faiss_index": "faiss_chunk.bin",
+  "faiss_built_at": "2026-11-03 23:30:26",
+  "bge_prompt": false,
+  "top_k": 5,
+  "records": 1050
+}

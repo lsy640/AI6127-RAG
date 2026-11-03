@@ -1,0 +1,51 @@
+query,run,bm25_ms,dense_encode_ms,dense_search_ms,fusion_ms,total_ms
+waterproof men's hiking boots,1,0.503,22.423,2.331,0.014,25.34
+waterproof men's hiking boots,2,0.391,22.874,1.828,0.014,25.165
+waterproof men's hiking boots,3,0.374,23.22,2.873,0.013,26.535
+waterproof men's hiking boots,4,0.341,21.884,2.207,0.017,24.511
+waterproof men's hiking boots,5,0.413,22.994,1.714,0.013,25.186
+waterproof men's hiking boots,6,0.332,23.253,2.668,0.014,26.324
+waterproof men's hiking boots,7,0.324,22.233,2.223,0.016,24.859
+waterproof men's hiking boots,8,0.409,22.594,1.631,0.014,24.7
+waterproof men's hiking boots,9,0.34,23.907,2.648,0.014,26.964
+waterproof men's hiking boots,10,0.344,22.097,2.22,0.016,24.742
+non-stick frying pan for induction stove,1,0.363,23.112,1.666,0.013,25.21
+non-stick frying pan for induction stove,2,0.281,24.381,1.704,0.013,26.43
+non-stick frying pan for induction stove,3,0.278,21.989,2.3,0.027,24.661
+non-stick frying pan for induction stove,4,0.318,23.452,1.744,0.014,25.585
+non-stick frying pan for induction stove,5,0.289,23.375,1.704,0.014,25.442
+non-stick frying pan for induction stove,6,0.316,22.816,2.333,0.016,25.549
+non-stick frying pan for induction stove,7,0.394,23.015,1.712,0.014,25.193
+non-stick frying pan for induction stove,8,0.289,23.338,2.639,0.015,26.342
+non-stick frying pan for induction stove,9,0.311,22.069,2.206,0.016,24.664
+non-stick frying pan for induction stove,10,0.333,22.778,1.784,0.015,24.975
+board game for family night with kids,1,0.323,23.466,2.718,0.015,26.579
+board game for family night with kids,2,0.295,22.062,2.301,0.015,24.729
+board game for family night with kids,3,0.311,22.395,1.822,0.014,24.597
+board game for family night with kids,4,0.303,21.716,2.401,0.015,24.492
+board game for family night with kids,5,0.39,21.535,1.644,0.014,23.634
+board game for family night with kids,6,0.309,20.597,1.756,0.014,22.73
+board game for family night with kids,7,0.305,20.167,2.408,0.018,22.961
+board game for family night with kids,8,0.355,22.84,1.734,0.016,24.999
+board game for family night with kids,9,0.313,20.145,2.003,0.018,22.543
+board game for family night with kids,10,0.346,22.261,1.853,0.013,24.523
+sterling silver earrings for sensitive ears,1,0.322,20.851,1.702,0.013,22.94
+sterling silver earrings for sensitive ears,2,0.337,19.713,2.146,0.02,22.28
+sterling silver earrings for sensitive ears,3,0.42,21.168,2.137,0.014,23.789
+sterling silver earrings for sensitive ears,4,0.299,21.289,1.701,0.013,23.353
+sterling silver earrings for sensitive ears,5,0.339,19.916,2.307,0.017,22.637
+sterling silver earrings for sensitive ears,6,0.32,21.036,2.072,0.014,23.489
+sterling silver earrings for sensitive ears,7,0.327,21.327,1.676,0.016,23.396
+sterling silver earrings for sensitive ears,8,0.332,20.166,2.387,0.017,22.957
+sterling silver earrings for sensitive ears,9,0.463,23.572,1.704,0.014,25.8
+sterling silver earrings for sensitive ears,10,0.358,19.892,2.247,0.018,22.57
+soft queen size bed sheets,1,0.457,22.807,1.673,0.015,25.001
+soft queen size bed sheets,2,0.322,23.142,2.679,0.015,26.21
+soft queen size bed sheets,3,0.335,22.108,2.199,0.018,24.718
+soft queen size bed sheets,4,0.361,22.006,1.661,0.015,24.096
+soft queen size bed sheets,5,0.348,21.397,1.845,0.023,23.68
+soft queen size bed sheets,6,0.409,23.666,1.715,0.017,25.864
+soft queen size bed sheets,7,0.357,21.61,2.356,0.029,24.459
+soft queen size bed sheets,8,0.401,22.248,1.75,0.015,24.467
+soft queen size bed sheets,9,0.336,20.807,2.385,0.019,23.608
+soft queen size bed sheets,10,0.605,22.24,1.683,0.022,24.612

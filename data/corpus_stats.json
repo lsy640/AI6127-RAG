@@ -1,0 +1,82 @@
+{
+  "documents": 15000,
+  "chunks": 48107,
+  "chunks_by_field": {
+    "overview": 16483,
+    "description": 16609,
+    "specs": 15015
+  },
+  "words": 3589422,
+  "words_definition": "whitespace-separated tokens in product text",
+  "types": 60141,
+  "types_definition": "unique lowercased alphanumeric tokens ([a-z0-9]+)",
+  "types_raw_whitespace": 212432,
+  "words_per_document": {
+    "mean": 239.3,
+    "median": 203,
+    "p95": 508,
+    "max": 2040
+  },
+  "words_per_chunk": {
+    "mean": 88.0,
+    "max": 421
+  },
+  "documents_by_category": {
+    "Clothing, Shoes & Jewelry": 5000,
+    "Home & Kitchen": 5000,
+    "Toys & Games": 5000
+  },
+  "sampling": {
+    "Clothing_Shoes_and_Jewelry": {
+      "scanned": 7218481,
+      "valid": 835390,
+      "reservoir": 5600,
+      "duplicate_asin": 0,
+      "duplicate_title": 5,
+      "empty_after_cleaning": 53,
+      "kept": 5000
+    },
+    "Home_and_Kitchen": {
+      "scanned": 3735584,
+      "valid": 749624,
+      "reservoir": 5600,
+      "duplicate_asin": 0,
+      "duplicate_title": 0,
+      "empty_after_cleaning": 24,
+      "kept": 5000
+    },
+    "Toys_and_Games": {
+      "scanned": 890874,
+      "valid": 268771,
+      "reservoir": 5600,
+      "duplicate_asin": 0,
+      "duplicate_title": 5,
+      "empty_after_cleaning": 6,
+      "kept": 5000
+    }
+  },
+  "cleaning": {
+    "html_entities:description": 9,
+    "html_entities:features": 3,
+    "html_entities:specs": 2,
+    "html_entities:store": 1,
+    "html_tags:description": 7,
+    "html_tags:features": 164,
+    "html_tags:specs": 2,
+    "html_tags:title": 1,
+    "spec_dropped:Batteries": 352,
+    "spec_dropped:Batteries Included?": 216,
+    "spec_dropped:Batteries Required?": 415,
+    "spec_dropped:Best Sellers Rank": 8710,
+    "spec_dropped:Date First Available": 8972,
+    "spec_dropped:Domestic Shipping": 288,
+    "spec_dropped:International Shipping": 288,
+    "spec_dropped:Is Discontinued By Manufacturer": 5226,
+    "spec_dropped:Item model number": 8451,
+    "spec_dropped:UPC": 41,
+    "symbols:description": 1567,
+    "symbols:features": 5608,
+    "symbols:specs": 10,
+    "symbols:title": 1
+  }
+}

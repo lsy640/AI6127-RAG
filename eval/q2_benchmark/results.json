@@ -1,0 +1,399 @@
+{
+  "environment": {
+    "retrieval_unit": "chunk",
+    "bge_prompt": false,
+    "faiss_index": "faiss_chunk.bin",
+    "indexed_units": 48107,
+    "embedding_device": "mps:0",
+    "machine": "Darwin arm64 arm",
+    "repeats": 10,
+    "date": "2026-11-04 00:01"
+  },
+  "queries": [
+    {
+      "query": "waterproof men's hiking boots",
+      "median_ms": {
+        "bm25_ms": 0.36,
+        "dense_encode_ms": 22.73,
+        "dense_search_ms": 2.22,
+        "fusion_ms": 0.01,
+        "total_ms": 25.18
+      },
+      "results": [
+        {
+          "rank": 1,
+          "parent_asin": "B0B5TXP8XW",
+          "title": "riemot Women's Men's Winter Snow Boots Waterproof Outdoor Boots Anti-slip Comfortable Boots Warm Fur Collar Shoes for Hiking Trekking Walking Camping Lace-up Shoes",
+          "category": "Clothing, Shoes & Jewelry",
+          "price": 29.99,
+          "average_rating": 4.0,
+          "rating_number": 133,
+          "matched_field": "description",
+          "bm25_rank": 1,
+          "dense_rank": 3,
+          "rrf_score": 0.03227
+        },
+        {
+          "rank": 2,
+          "parent_asin": "B08VFFD5MC",
+          "title": "Nord Trail Mt. Washington Hiking Shoes for Men - Lightweight High Traction Grip - Outdoor Trekking Boots for Camping and Backpacking",
+          "category": "Clothing, Shoes & Jewelry",
+          "price": 64.99,
+          "average_rating": 4.5,
+          "rating_number": 22,
+          "matched_field": "overview",
+          "bm25_rank": 5,
+          "dense_rank": 2,
+          "rrf_score": 0.03151
+        },
+        {
+          "rank": 3,
+          "parent_asin": "B07B4JB5YJ",
+          "title": "BEARPAW Men's Traverse Hiking Boot",
+          "category": "Clothing, Shoes & Jewelry",
+          "price": 119.99,
+          "average_rating": 3.8,
+          "rating_number": 22,
+          "matched_field": "description",
+          "bm25_rank": 10,
+          "dense_rank": 1,
+          "rrf_score": 0.03068
+        },
+        {
+          "rank": 4,
+          "parent_asin": "B08FBB3LPY",
+          "title": "Sorel Men's Kezar Storm WP Boot — Waterproof Leather Winter Boots",
+          "category": "Clothing, Shoes & Jewelry",
+          "price": 249.99,
+          "average_rating": 4.3,
+          "rating_number": 113,
+          "matched_field": "specs",
+          "bm25_rank": 4,
+          "dense_rank": 8,
+          "rrf_score": 0.03033
+        },
+        {
+          "rank": 5,
+          "parent_asin": "B09RTZKT33",
+          "title": "Rocky Men's Red Mountain Hiking Boot",
+          "category": "Clothing, Shoes & Jewelry",
+          "price": 54.56,
+          "average_rating": 4.2,
+          "rating_number": 24,
+          "matched_field": "description",
+          "bm25_rank": 8,
+          "dense_rank": 4,
+          "rrf_score": 0.03033
+        }
+      ]
+    },
+    {
+      "query": "non-stick frying pan for induction stove",
+      "median_ms": {
+        "bm25_ms": 0.31,
+        "dense_encode_ms": 23.06,
+        "dense_search_ms": 1.76,
+        "fusion_ms": 0.01,
+        "total_ms": 25.33
+      },
+      "results": [
+        {
+          "rank": 1,
+          "parent_asin": "B084M4XGVS",
+          "title": "Trudeau Pure Ceramic Frying Pan, 12-Inch, Grey",
+          "category": "Home & Kitchen",
+          "price": 46.98,
+          "average_rating": 4.3,
+          "rating_number": 31,
+          "matched_field": "overview",
+          "bm25_rank": 3,
+          "dense_rank": 2,
+          "rrf_score": 0.032
+        },
+        {
+          "rank": 2,
+          "parent_asin": "B0BKLSQ1FK",
+          "title": "Phantom Chef 12\" Deep Frying Pan with Granite finish & Lid | PFOA Free | Nonstick 12 Inch Chef Cookware | Induction Compatible | Dishwasher & Oven Safe | Stay-Cool Handle | Easy to Clean (Beige)",
+          "category": "Home & Kitchen",
+          "price": 49.97,
+          "average_rating": 4.5,
+          "rating_number": 20,
+          "matched_field": "overview",
+          "bm25_rank": 6,
+          "dense_rank": 1,
+          "rrf_score": 0.03154
+        },
+        {
+          "rank": 3,
+          "parent_asin": "B0BTHQT5FN",
+          "title": "Frying Pan Double Side Pan Folding Frying Pan Fried Egg for Household Kitchen Cookware",
+          "category": "Home & Kitchen",
+          "price": 21.19,
+          "average_rating": 1.0,
+          "rating_number": 1,
+          "matched_field": "overview",
+          "bm25_rank": 1,
+          "dense_rank": 8,
+          "rrf_score": 0.0311
+        },
+        {
+          "rank": 4,
+          "parent_asin": "B08G4Z27BR",
+          "title": "OXO Good Grips Hard Anodized PFOA-Free Nonstick 12\" Frying Pan Skillet Black & Good Grips Hard Anodized PFOA-Free Nonstick 8\" and 10\" Frying Pan Skillet set Black",
+          "category": "Home & Kitchen",
+          "price": 94.94,
+          "average_rating": 4.7,
+          "rating_number": 67,
+          "matched_field": "description",
+          "bm25_rank": 2,
+          "dense_rank": 12,
+          "rrf_score": 0.03002
+        },
+        {
+          "rank": 5,
+          "parent_asin": "B0CCG2LZYW",
+          "title": "Nuwave 3-quart Grill Pan with Tempered Glass Lid, Forged Lightweight, G10 Healthy Duralon Blue Ceramic Ultra Non-Stick Coating, Oven and Dishwasher-Safe, Induction-Ready, Evenly Heats & Durable, Gray",
+          "category": "Home & Kitchen",
+          "price": 57.04,
+          "average_rating": 4.9,
+          "rating_number": 25,
+          "matched_field": "specs",
+          "bm25_rank": 9,
+          "dense_rank": 5,
+          "rrf_score": 0.02988
+        }
+      ]
+    },
+    {
+      "query": "board game for family night with kids",
+      "median_ms": {
+        "bm25_ms": 0.31,
+        "dense_encode_ms": 21.89,
+        "dense_search_ms": 1.93,
+        "fusion_ms": 0.01,
+        "total_ms": 24.51
+      },
+      "results": [
+        {
+          "rank": 1,
+          "parent_asin": "B0C48KP7QQ",
+          "title": "Pandasaurus Games The Mind - Family-Friendly Board Games - Game Night - Card Games for Adults, Teens & Kids (2-4 Players)",
+          "category": "Toys & Games",
+          "price": 14.95,
+          "average_rating": 4.6,
+          "rating_number": 5740,
+          "matched_field": "description",
+          "bm25_rank": 1,
+          "dense_rank": 1,
+          "rrf_score": 0.03279
+        },
+        {
+          "rank": 2,
+          "parent_asin": "B0BGQ8QTMG",
+          "title": "eeBoo: Gathering a Garden Board Game, Educational Games and Activities that Cultivate Conversation, Socialization, and Skill-building, 2+ players, Perfect for Ages 5 and up",
+          "category": "Toys & Games",
+          "price": 14.99,
+          "average_rating": 4.7,
+          "rating_number": 415,
+          "matched_field": "overview",
+          "bm25_rank": 3,
+          "dense_rank": 5,
+          "rrf_score": 0.03126
+        },
+        {
+          "rank": 3,
+          "parent_asin": "B09MLWMSY1",
+          "title": "Hasbro Gaming Sorry! Board Game: Disney Villains Edition Kids, Family Games for Ages 6 and Up (Amazon Exclusive) , Green",
+          "category": "Toys & Games",
+          "price": 23.05,
+          "average_rating": 4.8,
+          "rating_number": 2380,
+          "matched_field": "description",
+          "bm25_rank": 4,
+          "dense_rank": 6,
+          "rrf_score": 0.03078
+        },
+        {
+          "rank": 4,
+          "parent_asin": "B08QFTQWWK",
+          "title": "2 Pack 29” Board Games for Kids, Large Dart Board for Kids with 20 Sticky Balls, Indoor/Sport Outdoor Play Game Toys, Birthday Gifts for 3 4 5 6 7 8 9 10 11 12 Year Old Boys Kids Girls Toddlers",
+          "category": "Toys & Games",
+          "price": 19.99,
+          "average_rating": 4.6,
+          "rating_number": 123,
+          "matched_field": "description",
+          "bm25_rank": 7,
+          "dense_rank": 8,
+          "rrf_score": 0.02963
+        },
+        {
+          "rank": 5,
+          "parent_asin": "B08Z785NKH",
+          "title": "A Little Wordy by Exploding Kittens - A Clever Scramble Word Game of Tiles, Cards, and Clues - 2 Player Board Games for Adults and Teens, Letter Tile Game",
+          "category": "Toys & Games",
+          "price": 14.88,
+          "average_rating": 4.7,
+          "rating_number": 1296,
+          "matched_field": "overview",
+          "bm25_rank": 8,
+          "dense_rank": 10,
+          "rrf_score": 0.02899
+        }
+      ]
+    },
+    {
+      "query": "sterling silver earrings for sensitive ears",
+      "median_ms": {
+        "bm25_ms": 0.33,
+        "dense_encode_ms": 20.94,
+        "dense_search_ms": 2.1,
+        "fusion_ms": 0.02,
+        "total_ms": 23.16
+      },
+      "results": [
+        {
+          "rank": 1,
+          "parent_asin": "B089SFGT9B",
+          "title": "Ai.Moichien Women 925 Sterling Silver Stud Earrings Crystal Starfish Fashion Elegant Sensitive Ears Jewelry Statement",
+          "category": "Clothing, Shoes & Jewelry",
+          "price": 0.99,
+          "average_rating": 5.0,
+          "rating_number": 1,
+          "matched_field": "overview",
+          "bm25_rank": 1,
+          "dense_rank": 1,
+          "rrf_score": 0.03279
+        },
+        {
+          "rank": 2,
+          "parent_asin": "B0BY213GDT",
+          "title": "Crawler Earrings for Women 14K Gold Plated Sterling Silver Post Ear Cuff Climbers Earrings Cubic Zirconia Ear Crawler Earrings (Silver/Gold/Rose Gold)",
+          "category": "Clothing, Shoes & Jewelry",
+          "price": 11.99,
+          "average_rating": 4.1,
+          "rating_number": 35,
+          "matched_field": "description",
+          "bm25_rank": 7,
+          "dense_rank": 4,
+          "rrf_score": 0.03055
+        },
+        {
+          "rank": 3,
+          "parent_asin": "B07CZF7SNF",
+          "title": "925 Sterling Silver Heart Earrings Dangle Earrings Light Drop Earrings Rhinestone Earrings Clear Cubic Zirconia Earrings Bridal Weddings Earrings",
+          "category": "Clothing, Shoes & Jewelry",
+          "price": 10.99,
+          "average_rating": 4.3,
+          "rating_number": 66,
+          "matched_field": "overview",
+          "bm25_rank": 11,
+          "dense_rank": 3,
+          "rrf_score": 0.02996
+        },
+        {
+          "rank": 4,
+          "parent_asin": "B076KXV645",
+          "title": "Hoops & Loops 925 Sterling Silver 2mm Oval Click-Top Hoop Earrings for Women & Teen Girls, Sizes 15mm 20mm 25mm 30mm 35mm 40mm",
+          "category": "Clothing, Shoes & Jewelry",
+          "price": 26.99,
+          "average_rating": 4.4,
+          "rating_number": 128,
+          "matched_field": "overview",
+          "bm25_rank": 3,
+          "dense_rank": 15,
+          "rrf_score": 0.02921
+        },
+        {
+          "rank": 5,
+          "parent_asin": "B0BQBJ6SJ5",
+          "title": "SLUYNZ 925 Sterling Silver Ear Cuff Earrings Chain for Women Teen Girls Crawler Earrings Wrap Helix Climber Earrings",
+          "category": "Clothing, Shoes & Jewelry",
+          "price": 13.99,
+          "average_rating": 4.3,
+          "rating_number": 351,
+          "matched_field": "overview",
+          "bm25_rank": 4,
+          "dense_rank": 18,
+          "rrf_score": 0.02845
+        }
+      ]
+    },
+    {
+      "query": "soft queen size bed sheets",
+      "median_ms": {
+        "bm25_ms": 0.36,
+        "dense_encode_ms": 22.17,
+        "dense_search_ms": 1.8,
+        "fusion_ms": 0.02,
+        "total_ms": 24.54
+      },
+      "results": [
+        {
+          "rank": 1,
+          "parent_asin": "B09B2J6TL5",
+          "title": "Diamond Bedding 800 Thread Count 100% Organic Bamboo Sheets - 6 pcs Bamboo Bed Sheets Organic Sheets 18\" Inch Deep Pocket Sheets Bed Set Cooling and Silky-Soft Sheets Queen Size (60X80)- Taupe",
+          "category": "Home & Kitchen",
+          "price": 93.99,
+          "average_rating": 3.8,
+          "rating_number": 3,
+          "matched_field": "overview",
+          "bm25_rank": 1,
+          "dense_rank": 8,
+          "rrf_score": 0.0311
+        },
+        {
+          "rank": 2,
+          "parent_asin": "B08389MK18",
+          "title": "Top Selling on Amazon Queen Size Sheets Luxury Soft 550-TC Egyptian Cotton - Sheet Set for Queen Size (60x80) Mattress Fits 7-9 Inches Fully Elastic Deep Pocket (Stripe, Grey)",
+          "category": "Home & Kitchen",
+          "price": 89.99,
+          "average_rating": 2.0,
+          "rating_number": 1,
+          "matched_field": "overview",
+          "bm25_rank": 9,
+          "dense_rank": 1,
+          "rrf_score": 0.03089
+        },
+        {
+          "rank": 3,
+          "parent_asin": "B01H0VEGOM",
+          "title": "MattRest Luxury Silky Soft - Wrinkle Resistant 1500 Thread Count Egyptian Quality Super Soft Fade Resistant 4-Piece Bed Sheet Set, Deep Pocket, Queen Pink",
+          "category": "Home & Kitchen",
+          "price": 25.99,
+          "average_rating": 4.4,
+          "rating_number": 5,
+          "matched_field": "specs",
+          "bm25_rank": 10,
+          "dense_rank": 6,
+          "rrf_score": 0.02944
+        },
+        {
+          "rank": 4,
+          "parent_asin": "B07MXWTKBT",
+          "title": "RV Sheets, RV Short Queen (60x75) Inch, Upto 8\" Deep Pocket, 400 Thread Count 100% Long Staple Cotton RV Sheet Sets 4 Piece, Light Grey",
+          "category": "Home & Kitchen",
+          "price": 41.99,
+          "average_rating": 4.5,
+          "rating_number": 25,
+          "matched_field": "overview",
+          "bm25_rank": 11,
+          "dense_rank": 12,
+          "rrf_score": 0.02797
+        },
+        {
+          "rank": 5,
+          "parent_asin": "B09VYYJB5N",
+          "title": "Scmkd Fitted Sheet Only-Bottom Sheet - Deep Pocket -Ultra-Soft Mricefirbe Wrinkle Free - Deep Pocket (Sky Blue,Queen)",
+          "category": "Home & Kitchen",
+          "price": 18.47,
+          "average_rating": 1.0,
+          "rating_number": 1,
+          "matched_field": "overview",
+          "bm25_rank": 15,
+          "dense_rank": 10,
+          "rrf_score": 0.02762
+        }
+      ]
+    }
+  ]
+}

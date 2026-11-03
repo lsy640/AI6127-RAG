@@ -1,5 +1,10 @@
-rank-bm25
 faiss-cpu
 sentence-transformers
+torch
+scikit-learn
+scipy
+numpy
 gradio
 requests
+openai
+openpyxl
