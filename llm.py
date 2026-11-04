@@ -29,14 +29,16 @@ class Usage:
         self.calls = 0
         self.prompt_tokens = 0
         self.completion_tokens = 0
+        self.cache_hit_tokens = 0
         self.seconds = 0.0
         self.by_tag = {}
 
-    def add(self, tag, prompt, completion, seconds):
+    def add(self, tag, prompt, completion, seconds, cache_hit=0):
         with self.lock:
             self.calls += 1
             self.prompt_tokens += prompt
             self.completion_tokens += completion
+            self.cache_hit_tokens += cache_hit
             self.seconds += seconds
             t = self.by_tag.setdefault(tag, [0, 0, 0])
             t[0] += 1
@@ -49,6 +51,7 @@ class Usage:
                 "calls": self.calls,
                 "prompt_tokens": self.prompt_tokens,
                 "completion_tokens": self.completion_tokens,
+                "cache_hit_tokens": self.cache_hit_tokens,
                 "llm_seconds": round(self.seconds, 2),
                 "by_tag": {k: {"calls": v[0], "prompt_tokens": v[1], "completion_tokens": v[2]}
                            for k, v in self.by_tag.items()},
@@ -81,7 +84,9 @@ def chat(messages, json_mode=True, max_tokens=800, temperature=0, thinking=None,
             resp = client.chat.completions.create(**kwargs)
             dt = time.perf_counter() - t0
             u = resp.usage
-            usage.add(tag, u.prompt_tokens if u else 0, u.completion_tokens if u else 0, dt)
+            # DeepSeek 在 usage 中返回 prompt_cache_hit_tokens（命中上下文缓存的输入 token，价格约为未命中的 1/50）
+            hit = (getattr(u, "prompt_cache_hit_tokens", None) or 0) if u else 0
+            usage.add(tag, u.prompt_tokens if u else 0, u.completion_tokens if u else 0, dt, hit)
             content = resp.choices[0].message.content or ""
             return parse_json_response(content) if json_mode else content.strip()
         except Exception as error:   # 网络错误、JSON 解析失败等：重试

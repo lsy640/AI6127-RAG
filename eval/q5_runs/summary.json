@@ -18,7 +18,9 @@
     "turn_latency_ms_p95": 6645.928459009156,
     "llm_calls_per_dialogue": 2.3222222222222224,
     "tokens_per_dialogue": 5589.238888888889,
-    "cost_usd_per_1000_dialogues": 2.0722716666666665,
+    "cost_usd_per_1000_dialogues": 0.73332792,
+    "cost_usd_per_1000_dialogues_list_price_no_cache": 2.0722716666666665,
+    "cost_basis": "offpeak price; cache hits assumed 40%",
     "wall_minutes": 6.2
   },
   "B1": {
@@ -40,7 +42,9 @@
     "turn_latency_ms_p95": 6874.070457997732,
     "llm_calls_per_dialogue": 4.044444444444444,
     "tokens_per_dialogue": 6481.333333333333,
-    "cost_usd_per_1000_dialogues": 2.501335,
+    "cost_usd_per_1000_dialogues": 0.90595152,
+    "cost_usd_per_1000_dialogues_list_price_no_cache": 2.501335,
+    "cost_basis": "offpeak price; cache hits assumed 40%",
     "wall_minutes": 6.1
   },
   "B2": {
@@ -62,7 +66,9 @@
     "turn_latency_ms_p95": 7642.704291967675,
     "llm_calls_per_dialogue": 5.411111111111111,
     "tokens_per_dialogue": 5412.144444444444,
-    "cost_usd_per_1000_dialogues": 2.161503333333333,
+    "cost_usd_per_1000_dialogues": 0.79765776,
+    "cost_usd_per_1000_dialogues_list_price_no_cache": 2.161503333333333,
+    "cost_basis": "offpeak price; cache hits assumed 40%",
     "wall_minutes": 6.9
   },
   "B3": {
@@ -84,7 +90,9 @@
     "turn_latency_ms_p95": 5958.196792053059,
     "llm_calls_per_dialogue": 4.722222222222222,
     "tokens_per_dialogue": 5051.138888888889,
-    "cost_usd_per_1000_dialogues": 2.046081666666667,
+    "cost_usd_per_1000_dialogues": 0.7607088799999999,
+    "cost_usd_per_1000_dialogues_list_price_no_cache": 2.046081666666667,
+    "cost_basis": "offpeak price; cache hits assumed 40%",
     "wall_minutes": 7.3
   },
   "B4": {
@@ -106,7 +114,9 @@
     "turn_latency_ms_p95": 6002.643125015311,
     "llm_calls_per_dialogue": 4.5,
     "tokens_per_dialogue": 4743.472222222223,
-    "cost_usd_per_1000_dialogues": 1.9459666666666666,
+    "cost_usd_per_1000_dialogues": 0.7282316,
+    "cost_usd_per_1000_dialogues_list_price_no_cache": 1.9459666666666666,
+    "cost_basis": "offpeak price; cache hits assumed 40%",
     "wall_minutes": 7.2
   },
   "full": {
@@ -128,7 +138,9 @@
     "turn_latency_ms_p95": 10485.944624990225,
     "llm_calls_per_dialogue": 6.944444444444445,
     "tokens_per_dialogue": 8567.761111111111,
-    "cost_usd_per_1000_dialogues": 3.5240633333333333,
+    "cost_usd_per_1000_dialogues": 1.320558,
+    "cost_usd_per_1000_dialogues_list_price_no_cache": 3.5240633333333333,
+    "cost_basis": "offpeak price; cache hits assumed 40%",
     "wall_minutes": 209.6
   },
   "full-I1": {
@@ -150,7 +162,9 @@
     "turn_latency_ms_p95": 6718.706791987643,
     "llm_calls_per_dialogue": 5.194444444444445,
     "tokens_per_dialogue": 8016.466666666666,
-    "cost_usd_per_1000_dialogues": 3.087915,
+    "cost_usd_per_1000_dialogues": 1.1172102933333332,
+    "cost_usd_per_1000_dialogues_list_price_no_cache": 3.087915,
+    "cost_basis": "offpeak price; cache hits assumed 40%",
     "wall_minutes": 3.6
   },
   "full-I2": {
@@ -172,7 +186,9 @@
     "turn_latency_ms_p95": 8138.734291889705,
     "llm_calls_per_dialogue": 7.016666666666667,
     "tokens_per_dialogue": 7530.272222222222,
-    "cost_usd_per_1000_dialogues": 3.1903866666666665,
+    "cost_usd_per_1000_dialogues": 1.2132585866666667,
+    "cost_usd_per_1000_dialogues_list_price_no_cache": 3.1903866666666665,
+    "cost_basis": "offpeak price; cache hits assumed 40%",
     "wall_minutes": 7.9
   },
   "full-I3": {
@@ -194,7 +210,9 @@
     "turn_latency_ms_p95": 6100.66720796749,
     "llm_calls_per_dialogue": 4.5055555555555555,
     "tokens_per_dialogue": 4769.5055555555555,
-    "cost_usd_per_1000_dialogues": 1.9556716666666667,
+    "cost_usd_per_1000_dialogues": 0.7316771466666667,
+    "cost_usd_per_1000_dialogues_list_price_no_cache": 1.9556716666666667,
+    "cost_basis": "offpeak price; cache hits assumed 40%",
     "wall_minutes": 7.2
   },
   "clarify-rule": {
@@ -216,7 +234,9 @@
     "turn_latency_ms_p95": 7298.395624966361,
     "llm_calls_per_dialogue": 6.955555555555556,
     "tokens_per_dialogue": 9013.194444444445,
-    "cost_usd_per_1000_dialogues": 3.690643333333333,
+    "cost_usd_per_1000_dialogues": 1.3798092533333333,
+    "cost_usd_per_1000_dialogues_list_price_no_cache": 3.690643333333333,
+    "cost_basis": "offpeak price; cache hits assumed 40%",
     "wall_minutes": 6.2
   },
   "clarify-llm": {
@@ -238,7 +258,9 @@
     "turn_latency_ms_p95": 7392.600832972676,
     "llm_calls_per_dialogue": 6.877777777777778,
     "tokens_per_dialogue": 9273.488888888889,
-    "cost_usd_per_1000_dialogues": 3.7525116666666665,
+    "cost_usd_per_1000_dialogues": 1.3943784,
+    "cost_usd_per_1000_dialogues_list_price_no_cache": 3.7525116666666665,
+    "cost_basis": "offpeak price; cache hits assumed 40%",
     "wall_minutes": 6.0
   },
   "select-llm": {
@@ -260,7 +282,9 @@
     "turn_latency_ms_p95": 7340.066625038162,
     "llm_calls_per_dialogue": 9.75,
     "tokens_per_dialogue": 9191.95,
-    "cost_usd_per_1000_dialogues": 3.7946299999999997,
+    "cost_usd_per_1000_dialogues": 1.4245819466666665,
+    "cost_usd_per_1000_dialogues_list_price_no_cache": 3.7946299999999997,
+    "cost_basis": "offpeak price; cache hits assumed 40%",
     "wall_minutes": 8.0
   },
   "select-random": {
@@ -282,7 +306,9 @@
     "turn_latency_ms_p95": 10774.031582986936,
     "llm_calls_per_dialogue": 7.105555555555555,
     "tokens_per_dialogue": 8812.394444444444,
-    "cost_usd_per_1000_dialogues": 3.6206033333333334,
+    "cost_usd_per_1000_dialogues": 1.3559560266666666,
+    "cost_usd_per_1000_dialogues_list_price_no_cache": 3.6206033333333334,
+    "cost_basis": "offpeak price; cache hits assumed 40%",
     "wall_minutes": 21.0
   },
   "full+thinking": {
@@ -304,7 +330,9 @@
     "turn_latency_ms_p95": 8277.40320796147,
     "llm_calls_per_dialogue": 6.8277777777777775,
     "tokens_per_dialogue": 9193.083333333334,
-    "cost_usd_per_1000_dialogues": 4.37792,
+    "cost_usd_per_1000_dialogues": 1.7542463733333333,
+    "cost_usd_per_1000_dialogues_list_price_no_cache": 4.37792,
+    "cost_basis": "offpeak price; cache hits assumed 40%",
     "wall_minutes": 7.8
   },
   "full+aspects": {
@@ -326,7 +354,9 @@
     "turn_latency_ms_p95": 8853.45187492203,
     "llm_calls_per_dialogue": 7.05,
     "tokens_per_dialogue": 9274.994444444445,
-    "cost_usd_per_1000_dialogues": 4.178388333333333,
+    "cost_usd_per_1000_dialogues": 1.6350226399999999,
+    "cost_usd_per_1000_dialogues_list_price_no_cache": 4.178388333333333,
+    "cost_basis": "offpeak price; cache hits assumed 40%",
     "wall_minutes": 7.8
   }
 }

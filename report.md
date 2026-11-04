@@ -224,12 +224,14 @@ LLM: `deepseek-flash` with thinking (reasoning) mode **disabled** by default. In
 | Retrieval latency (warm) | ~25 ms without re-ranking; ~0.4–0.6 s with cross-encoder re-ranking of 20 candidates (Apple M5, fp16) |
 | End-to-end latency per turn (p50 / p95) | 3.85 s / 7.93 s (full agent)‡; 4.24 s / 6.00 s (B4) |
 | LLM calls and tokens per dialogue | 6.94 calls, ~8,570 tokens (full); 4.5 calls, ~4,740 tokens (B4) |
-| Cost per 1,000 dialogues | $3.52 (full); $1.95 (B4); $4.38 with thinking mode |
+| Cost per 1,000 dialogues§ | $1.32 (full); $0.73 (B4); $1.75 with thinking mode |
 | Throughput (dialogues/s, with concurrency) | 0.39 dialogues/s (180 dialogues in 7.6 min, 6 parallel workers, one Mac)‡ |
 
 ‡ Latency and throughput of the full agent are taken from its first run (identical pipeline except for the self-check's budget handling, which costs no extra calls); the wall-clock time of the corrected re-run is not comparable because the machine went to sleep during it.
 
-Scalability: exact inner-product search over 48k vectors takes about 2 ms. For catalogues in the millions, FAISS IVF/HNSW indexes and a vector database would replace `IndexFlatIP`; BM25 as a sparse matrix scales linearly in the number of postings; LLM latency dominates per-turn cost: retrieval without re-ranking is ~20 ms and re-ranking ~0.7 s, while the 2–3 LLM calls of a turn take ~3 s. The self-check and evidence check add ~2.5 LLM calls per dialogue (+$1.6 per 1,000 dialogues) but no extra retrieval. To scale: run the re-ranker on a GPU server (batching, ~10× faster), cache translations and state-tracking for repeated openings, and parallelise the independent LLM calls of a turn; the throughput above is limited by API latency, not by local compute.
+§ Cost uses DeepSeek's `deepseek-flash` off-peak prices (input $0.15 per million tokens on a cache miss, $0.003 on a cache hit; output $0.60), at which all experiments were run, and a 40 % context-cache hit rate, the overall rate on our DeepSeek bill (the per-call hit count was not logged in these runs; `llm.py` now records it). At peak-hour list price without caching the figures would be 2.7× higher ($3.52 for the full agent). Check against the bill: all LLM calls of the project (15 dialogue configurations × 180 dialogues, the LLM judge, the decision evaluation, translations and smoke tests; ~24 M input and ~3.3 M output tokens) cost **$4.61** in total; the same token counts priced with the rule above give ≈ $4.2; the remainder is mostly the part of the corrected re-run that fell into peak hours.
+
+Scalability: exact inner-product search over 48k vectors takes about 2 ms. For catalogues in the millions, FAISS IVF/HNSW indexes and a vector database would replace `IndexFlatIP`; BM25 as a sparse matrix scales linearly in the number of postings; LLM latency dominates per-turn cost: retrieval without re-ranking is ~20 ms and re-ranking ~0.7 s, while the 2–3 LLM calls of a turn take ~3 s. The self-check and evidence check add ~2.5 LLM calls per dialogue (+$0.6 per 1,000 dialogues) but no extra retrieval. To scale: run the re-ranker on a GPU server (batching, ~10× faster), cache translations and state-tracking for repeated openings, and parallelise the independent LLM calls of a turn; the throughput above is limited by API latency, not by local compute.
 
 ---
 
@@ -251,16 +253,15 @@ User simulator: DeepSeek plays the user with a hidden need. It only knows the at
 
 | Configuration | Success@3 | First-rec. success | Avg. turns | Questions | Constraint violations | Decision F1* | Faithfulness | LLM calls / dialogue | Cost / 1k dialogues |
 |---|---|---|---|---|---|---|---|---|---|
-| B0: single-turn RAG (history concatenated) | 0.789 | 0.433 | 2.32 | 0 | 0.723 | 0 | 0.993 | 2.3 | $2.07 |
-| B1: + I2 rewriting | 0.856 | 0.489 | 2.02 | 0 | 0.688 | 0 | 0.994 | 4.0 | $2.50 |
-| B2: + clarification (LLM judgement) | 0.861 | 0.767 | 2.71 | 1.22 | 0.544 | 0.855 | – | 5.4 | $2.16 |
-| B3: + I1 entropy decision & question selection | 0.833 | 0.811 | 3.40 | 2.08 | 0.404 | 0.904 | – | 4.7 | $2.05 |
-| B4: + I2 metadata filters | 0.889 | 0.872 | 3.29 | 2.09 | 0.354 | 0.904 | 0.994 | 4.5 | $1.95 |
-| Full: + I3 evidence check & self-check† | 0.883 | 0.861 | 3.31 | 2.09 | 0.355 | 0.904 | **0.999** | 6.9 | $3.52 |
-| Full − I1 (no clarification) | 0.594 | 0.489 | 1.38 | 0 | 0.565 | 0 | – | 5.2 | $3.09 |
-| Full − I2 (no rewriting / filters) | 0.861 | 0.844 | 3.33 | 2.08 | 0.352 | 0.904 | – | 7.0 | $3.19 |
-| Full − I3 | **0.894** | **0.872** | 3.29 | 2.08 | 0.365 | 0.904 | 0.994 | 4.5 | $1.96 |
-
+| B0: single-turn RAG (history concatenated) | 0.789 | 0.433 | 2.32 | 0 | 0.723 | 0 | 0.993 | 2.3 | $0.73 |
+| B1: + I2 rewriting | 0.856 | 0.489 | 2.02 | 0 | 0.688 | 0 | 0.994 | 4.0 | $0.91 |
+| B2: + clarification (LLM judgement) | 0.861 | 0.767 | 2.71 | 1.22 | 0.544 | 0.855 | – | 5.4 | $0.80 |
+| B3: + I1 entropy decision & question selection | 0.833 | 0.811 | 3.40 | 2.08 | 0.404 | 0.904 | – | 4.7 | $0.76 |
+| B4: + I2 metadata filters | 0.889 | 0.872 | 3.29 | 2.09 | 0.354 | 0.904 | 0.994 | 4.5 | $0.73 |
+| Full: + I3 evidence check & self-check† | 0.883 | 0.861 | 3.31 | 2.09 | 0.355 | 0.904 | **0.999** | 6.9 | $1.32 |
+| Full − I1 (no clarification) | 0.594 | 0.489 | 1.38 | 0 | 0.565 | 0 | – | 5.2 | $1.12 |
+| Full − I2 (no rewriting / filters) | 0.861 | 0.844 | 3.33 | 2.08 | 0.352 | 0.904 | – | 7.0 | $1.21 |
+| Full − I3 | **0.894** | **0.872** | 3.29 | 2.08 | 0.365 | 0.904 | 0.994 | 4.5 | $0.73 |
 Sub-ablations of I1 and options (full agent with one component changed):
 
 | Variant | Success@3 | First-rec. success | Questions | Useful-question rate | Over-asking on complete openings | Constraint violations | LLM calls |
@@ -270,13 +271,13 @@ Sub-ablations of I1 and options (full agent with one component changed):
 | Decision: LLM judgement | 0.883 | 0.761 | 1.29 | 0.966 | 0.028 | 0.478 | 6.9 |
 | Question choice: LLM | 0.900 | 0.828 | 2.44 | 0.577 | 0.500 | 0.375 | 9.8 |
 | Question choice: random unfilled slot | 0.883 | 0.844 | 2.11 | 0.818 | 0.500 | 0.363 | 7.1 |
-| Full + DeepSeek thinking mode | **0.900** | **0.872** | 2.11 | 0.815 | 0.500 | **0.316** | 6.8 ($4.38 / 1k) |
+| Full + DeepSeek thinking mode | **0.900** | **0.872** | 2.11 | 0.815 | 0.500 | **0.316** | 6.8 ($1.75 / 1k) |
 | Full + I4 aspect explanations | 0.878 | 0.839 | 2.09 | 0.814 | 0.500 | 0.363 | 7.1 |
 
-\* Decision F1 on the 360 annotated snapshots, provisional (rule-derived gold, see Section 4.4); configurations that never ask have recall 0. Faithfulness is the LLM-judge score, run for the main configurations only.
+\* Decision F1 on the 360 annotated snapshots, provisional (rule-derived gold, see Section 4.4); configurations that never ask have recall 0. Faithfulness is the LLM-judge score, run for the main configurations only. Cost per 1,000 dialogues is computed as in Section 4.6 (off-peak price, 40 % cache hits).
 † Corrected run. A first run of the full agent had a self-check bug: it also rewrote the user's budget when the budget was quoted in a reason (e.g. "within your $75 budget" → "$21.80"), which lowered faithfulness to 0.977 (supported numeric claims 0.915, success 0.889). Amounts next to budget words or equal to the budget are no longer treated as price claims; after the fix faithfulness rises to 0.999 and supported numeric claims to 0.951.
 
-**Findings.** (1) Clarification is the main driver: removing it (Full − I1) drops success from 0.883 to 0.594, and from B1 to B2 the first-recommendation success rises from 0.489 to 0.767 because the agent stops recommending blindly. (2) Constraint-to-filter mapping mostly reduces violations (B3 → B4: 0.404 → 0.354) and raises success (0.833 → 0.889). (3) The entropy criterion asks whenever candidates are diverse, which gives perfect recall of needed questions but over-asks on half of the fully specified openings (e.g. S006, "a ring for women under $25" → "statement, stacking or bands?"); the rule-based decision asks fewer, more useful questions (0.964) at the same success. Entropy-based *selection* is no better than asking a random unfilled slot (success 0.883 vs 0.883; first-rec. success 0.861 vs 0.844), an honest negative result: with only 3–5 slots, any required slot is informative. (4) I3 does not raise simulator success (Full − I3: 0.894 vs 0.883, within noise of one run), but it gives the highest faithfulness (0.999 vs 0.994), makes the agent refuse instead of inventing a match (61 refusals without clarification), and verifies 95.1 % of numeric claims; its cost is ~2.4 extra LLM calls (+$1.6 per 1,000 dialogues). (5) Thinking mode gives the lowest violation rate (0.316) at +24 % cost.
+**Findings.** (1) Clarification is the main driver: removing it (Full − I1) drops success from 0.883 to 0.594, and from B1 to B2 the first-recommendation success rises from 0.489 to 0.767 because the agent stops recommending blindly. (2) Constraint-to-filter mapping mostly reduces violations (B3 → B4: 0.404 → 0.354) and raises success (0.833 → 0.889). (3) The entropy criterion asks whenever candidates are diverse, which gives perfect recall of needed questions but over-asks on half of the fully specified openings (e.g. S006, "a ring for women under $25" → "statement, stacking or bands?"); the rule-based decision asks fewer, more useful questions (0.964) at the same success. Entropy-based *selection* is no better than asking a random unfilled slot (success 0.883 vs 0.883; first-rec. success 0.861 vs 0.844), an honest negative result: with only 3–5 slots, any required slot is informative. (4) I3 does not raise simulator success (Full − I3: 0.894 vs 0.883, within noise of one run), but it gives the highest faithfulness (0.999 vs 0.994), makes the agent refuse instead of inventing a match (61 refusals without clarification), and verifies 95.1 % of numeric claims; its cost is ~2.4 extra LLM calls (+$0.6 per 1,000 dialogues). (5) Thinking mode gives the lowest violation rate (0.316) at +33 % cost.
 
 ### 5.3 Qualitative examples
 
