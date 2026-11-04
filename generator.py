@@ -520,6 +520,10 @@ def _chat(client, model, messages):
         messages=messages,
         temperature=0,
         max_tokens=1200,
+        # deepseek-flash 默认开启思考模式（temperature 失效、输出不可复现、多出数百推理 token），
+        # 这里默认关闭；设置 DEEPSEEK_THINKING=enabled 可开启。
+        extra_body={"thinking": {
+            "type": "enabled" if os.getenv("DEEPSEEK_THINKING") == "enabled" else "disabled"}},
     )
 
     try:

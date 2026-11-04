@@ -1,49 +1,72 @@
-# Q4 标注指南（Annotation Guidelines）
+# Q4 标注指南（场景式对话推荐）
 
-## 任务
+每位标注者**独立**完成自己的 `sheet_<名字>.xlsx`，标注期间不要互相讨论，否则一致率（IAA）无效。表格有两个工作表。
 
-每条记录是一对 **(用户查询, 检索到的商品段落)**。判断：**这个商品是否满足该查询的需求？**
+背景：系统是一个购物助手，用户可能只说一句很模糊的话（例如“想买双鞋”）。助手要么先反问补全需求，要么直接推荐商品。
 
-- `1` = 相关（relevant）：推荐给提出这个查询的用户是合理的
-- `0` = 不相关（not relevant）
+---
 
-共 1,050 条（210 个查询 × Top-5），覆盖服装、家居厨房、玩具三个类目，外加 20 个超出语料范围的查询。每位标注者**独立**完成，标注期间不要讨论，否则一致率（IAA）无效。
+## 工作表 1：decisions（360 条）
 
-## 判定规则
+每条是一段对话的当前状态。请回答：
 
-1. **只看段落内容判断**，不要上网查商品，不要凭品牌印象。
-2. **品类必须对**：查询要“手表”，商品是“表带” → `0`；查询要“靴子”，商品是“袜子” → `0`；查询要“遥控车”，商品是“遥控车配件” → `0`（除非查询本身要配件）。
-3. **人群 / 年龄必须对**：查询写明 men's / women's / kids / baby，商品明确是另一人群 → `0`；商品为 unisex 或未注明 → 可以是 `1`。玩具查询写了年龄（如 2-year-old、ages 8+），商品标注的适用年龄明显不符 → `0`；未标注年龄 → 按常识判断。
-   **尺寸 / 规格**：查询写明尺寸（queen bed、18x18 inches、1000-piece），段落写了不同尺寸 → `0`；段落列出多个可选尺寸且包含所需尺寸 → `1`。
-4. **明确写出的约束必须满足**：查询提到的硬性属性（waterproof、100% cotton、sterling silver、steel toe、with pockets 等）：
-   - 段落中**明确写了**该属性 → 满足
-   - 段落中**明确相反** → `0`
-   - 段落中**没提到** → `0`（因为系统无法依据证据确认）
-   - 近义表达算满足：water resistant ≈ waterproof（**例外**：查询明确要求 "waterproof for swimming" 时不算）
-   - **价格**：每条商品段落在标题后都列出了 `Price`、`Average rating`、评论数。查询写了明确价格上限（under $50）→ 按价格判断，超出即 `0`。
-5. **主观形容词放宽**：comfortable、soft、affordable、budget、good for everyday 这类词，只要品类和人群对、段落没有明显矛盾 → 可标 `1`（affordable / budget 不按具体价格卡死，除非价格明显离谱）。
-6. **问句型查询**（Which…/What…）：商品能作为该问题的一个正确答案 → `1`。
-7. **超出语料范围的查询**（笔记本电脑、手机、汽车机油等）：几乎都应为 `0`，除非检索到的商品确实满足需求。
-8. **拿不准时**：按“如果我是这个用户，看到这个推荐会觉得有用吗？”判断，并在 `comment` 栏写原因，方便后续仲裁。
+**should_ask**：此时助手应该 **反问（1）** 还是 **直接推荐（0）**？
+**ask_about**（仅当填 1 时）：最应该问的**一个**属性，从下拉框中选：`product type` / `who it is for` / `child age` / `budget` / `material`
 
-## 示例
+### 判定规则
 
-| 查询 | 商品 | 标签 | 原因 |
+推荐前需要知道的关键信息：
+
+| 领域 | 必须知道 | 可选 |
+|---|---|---|
+| 服装、鞋、首饰、包（clothing） | 具体品类（如“凉鞋”，不是“鞋”）、给谁（男/女/儿童）、预算 | — |
+| 家居厨房（home_kitchen） | 具体品类（如“砧板”，不是“厨房用品”）、预算 | 材质 |
+| 玩具（toys） | 具体品类（如“拼图”，不是“玩具”）、孩子年龄、预算 | — |
+
+1. 任何一项“必须知道”的信息缺失 → `should_ask = 1`；都已知道 → `0`。
+2. 用户说“都可以 / 没有偏好” → 视为已知道。
+3. `ask_about` 选**最影响推荐结果**的缺失项。品类不明确时优先问品类，其次是人群或年龄，最后是预算。
+4. 只根据对话内容判断，不要猜测用户没说的信息。
+
+### 示例
+
+| 对话 | should_ask | ask_about |
+|---|---|---|
+| USER: I'm looking for some shoes. | 1 | product type |
+| USER: 想买饼干模具。 | 1 | budget |
+| USER: I want a hoodie for men. / ASSISTANT: What's your budget? / USER: My budget is up to $40. | 0 | （空） |
+| USER: I'm looking for a jigsaw puzzle for a 6-year-old child under $25. | 0 | （空） |
+
+---
+
+## 工作表 2：relevance（约 1,080 条）
+
+每条是一个用户的**完整需求**（英文 + 中文）和一个候选商品（标题后附价格、评分）。请判断：
+
+**relevant**：这个商品**是否满足**该需求？ 满足 = `1`，不满足 = `0`
+
+### 判定规则
+
+1. **品类必须对**：要“耳钉”，给的是“项链” → 0；要“遥控车”，给的是“遥控车配件” → 0。近义品类算对（“毛绒玩具”与“毛绒公仔”都算毛绒玩具）。
+2. **人群 / 年龄必须对**：要女款，商品明确是男款 → 0；男女通用或未注明 → 可以算 1。要给 3 岁孩子，商品写“8 岁以上” → 0；未注明年龄 → 按常识判断。
+3. **预算是硬约束**：价格超过预算 → 0（看标题后面的 `Price`）。
+4. **材质**：需求写了材质，商品明确是其他材质 → 0；没写材质 → 按常识判断。
+5. **只看给出的商品信息**，不要上网查。
+6. 拿不准时，按“如果我是这个用户，会不会愿意买它”判断，并在 comment 写原因。
+
+### 示例
+
+| 需求 | 商品 | relevant | 原因 |
 |---|---|---|---|
-| I need waterproof men's boots for hiking. | Foxelli Men's Hiking Boots – Waterproof Suede Leather… | 1 | 品类、人群、waterproof 都满足 |
-| I need waterproof men's boots for hiking. | C.PARAVANO Pointed Chelsea Boots Women… | 0 | 女款，且非徒步靴 |
-| A men's watch with a leather strap. | DITOU Watch Band 20mm… Leather Watch Strap | 0 | 表带不是手表 |
-| I want a pair of yoga pants. | PERSIT Yoga Pants for Women with Pockets… | 1 | 未限定性别，品类正确 |
-| Which earrings are made of 925 sterling silver? | Moonstone Stud Earrings 925 Sterling Silver… | 1 | 明确写了 925 sterling silver |
-| Find a non-stick frying pan. | … Nonstick Frying Pan, 10 inch … | 1 | 品类正确，明确 non-stick |
-| A 1000-piece jigsaw puzzle with a landscape picture. | … 500 Piece Jigsaw Puzzle, Mountain Lake … | 0 | 片数不符 |
-| Suggest a toy for a 2-year-old toddler. | … Building Blocks, Ages 8+ … | 0 | 适用年龄不符 |
-| What is the best smartphone under $500? | Thread Tank Women's T-Shirt | 0 | 超出语料范围 |
+| a pair of sandals for women under $80 | Women's Flat Sandals …; Price: $29.99 | 1 | 品类、人群、价格都满足 |
+| a pair of sandals for women under $80 | Men's Leather Slide Sandals …; Price: $45.00 | 0 | 男款 |
+| a jigsaw puzzle for a 6-year-old child under $25 | 1000 Piece Puzzle, Ages 12+ …; Price: $18.99 | 0 | 年龄不符 |
+| a cutting board under $30 | Bamboo Cutting Board Set …; Price: $36.99 | 0 | 超预算 |
+
+---
 
 ## 流程
 
-1. 打开自己的 `sheet_<名字>.xlsx`，在 `relevant (1/0)` 列填 1 或 0，不要改动其他列，不要排序或删行。
-2. 交回文件后运行 `python compute_iaa.py`，计算一致率和 Cohen's / Fleiss' κ。
-3. 存在分歧的记录会导出到 `adjudication.csv`：
-   - 3 人标注时按多数票自动定标；
-   - 2 人标注时由第三人或讨论后在 `final_label` 列填写最终标签，再运行一次 `compute_iaa.py` 生成金标准 `gold_labels.csv`。
+1. 在各自的表中填写，不要修改其他列，不要排序或删除行。
+2. 收齐后运行 `python compute_iaa.py`：分别计算 should_ask、ask_about、relevance 的一致率、Cohen's κ 和 Fleiss' κ，生成金标准 `gold_decisions.csv`、`gold_relevance.csv`。
+3. 3 人标注时按多数票定标；2 人标注时，分歧写入 `adjudication_*.csv`，由第三人在 `final_label` 列裁决后重新运行。

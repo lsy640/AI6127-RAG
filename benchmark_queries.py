@@ -72,7 +72,7 @@ def main():
                 "matched_field": h["matched_field"],
                 "bm25_rank": h["bm25_rank"],
                 "dense_rank": h["dense_rank"],
-                "rrf_score": h["rrf_score"],
+                "fusion_score": h["fusion_score"],
             } for i, h in enumerate(hits)],
         })
 

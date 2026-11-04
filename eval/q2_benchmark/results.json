@@ -7,17 +7,17 @@
     "embedding_device": "mps:0",
     "machine": "Darwin arm64 arm",
     "repeats": 10,
-    "date": "2026-11-04 00:01"
+    "date": "2026-11-04 04:17"
   },
   "queries": [
     {
       "query": "waterproof men's hiking boots",
       "median_ms": {
-        "bm25_ms": 0.36,
-        "dense_encode_ms": 22.73,
-        "dense_search_ms": 2.22,
+        "bm25_ms": 0.29,
+        "dense_encode_ms": 16.7,
+        "dense_search_ms": 1.6,
         "fusion_ms": 0.01,
-        "total_ms": 25.18
+        "total_ms": 18.65
       },
       "results": [
         {
@@ -31,7 +31,7 @@
           "matched_field": "description",
           "bm25_rank": 1,
           "dense_rank": 3,
-          "rrf_score": 0.03227
+          "fusion_score": 0.03227
         },
         {
           "rank": 2,
@@ -44,7 +44,7 @@
           "matched_field": "overview",
           "bm25_rank": 5,
           "dense_rank": 2,
-          "rrf_score": 0.03151
+          "fusion_score": 0.03151
         },
         {
           "rank": 3,
@@ -57,7 +57,7 @@
           "matched_field": "description",
           "bm25_rank": 10,
           "dense_rank": 1,
-          "rrf_score": 0.03068
+          "fusion_score": 0.03068
         },
         {
           "rank": 4,
@@ -70,7 +70,7 @@
           "matched_field": "specs",
           "bm25_rank": 4,
           "dense_rank": 8,
-          "rrf_score": 0.03033
+          "fusion_score": 0.03033
         },
         {
           "rank": 5,
@@ -83,18 +83,18 @@
           "matched_field": "description",
           "bm25_rank": 8,
           "dense_rank": 4,
-          "rrf_score": 0.03033
+          "fusion_score": 0.03033
         }
       ]
     },
     {
       "query": "non-stick frying pan for induction stove",
       "median_ms": {
-        "bm25_ms": 0.31,
-        "dense_encode_ms": 23.06,
-        "dense_search_ms": 1.76,
+        "bm25_ms": 0.22,
+        "dense_encode_ms": 16.66,
+        "dense_search_ms": 1.62,
         "fusion_ms": 0.01,
-        "total_ms": 25.33
+        "total_ms": 18.51
       },
       "results": [
         {
@@ -108,7 +108,7 @@
           "matched_field": "overview",
           "bm25_rank": 3,
           "dense_rank": 2,
-          "rrf_score": 0.032
+          "fusion_score": 0.032
         },
         {
           "rank": 2,
@@ -121,7 +121,7 @@
           "matched_field": "overview",
           "bm25_rank": 6,
           "dense_rank": 1,
-          "rrf_score": 0.03154
+          "fusion_score": 0.03154
         },
         {
           "rank": 3,
@@ -134,7 +134,7 @@
           "matched_field": "overview",
           "bm25_rank": 1,
           "dense_rank": 8,
-          "rrf_score": 0.0311
+          "fusion_score": 0.0311
         },
         {
           "rank": 4,
@@ -147,7 +147,7 @@
           "matched_field": "description",
           "bm25_rank": 2,
           "dense_rank": 12,
-          "rrf_score": 0.03002
+          "fusion_score": 0.03002
         },
         {
           "rank": 5,
@@ -160,18 +160,18 @@
           "matched_field": "specs",
           "bm25_rank": 9,
           "dense_rank": 5,
-          "rrf_score": 0.02988
+          "fusion_score": 0.02988
         }
       ]
     },
     {
       "query": "board game for family night with kids",
       "median_ms": {
-        "bm25_ms": 0.31,
-        "dense_encode_ms": 21.89,
-        "dense_search_ms": 1.93,
+        "bm25_ms": 0.21,
+        "dense_encode_ms": 16.49,
+        "dense_search_ms": 1.6,
         "fusion_ms": 0.01,
-        "total_ms": 24.51
+        "total_ms": 18.36
       },
       "results": [
         {
@@ -185,7 +185,7 @@
           "matched_field": "description",
           "bm25_rank": 1,
           "dense_rank": 1,
-          "rrf_score": 0.03279
+          "fusion_score": 0.03279
         },
         {
           "rank": 2,
@@ -198,7 +198,7 @@
           "matched_field": "overview",
           "bm25_rank": 3,
           "dense_rank": 5,
-          "rrf_score": 0.03126
+          "fusion_score": 0.03126
         },
         {
           "rank": 3,
@@ -211,7 +211,7 @@
           "matched_field": "description",
           "bm25_rank": 4,
           "dense_rank": 6,
-          "rrf_score": 0.03078
+          "fusion_score": 0.03078
         },
         {
           "rank": 4,
@@ -224,7 +224,7 @@
           "matched_field": "description",
           "bm25_rank": 7,
           "dense_rank": 8,
-          "rrf_score": 0.02963
+          "fusion_score": 0.02963
         },
         {
           "rank": 5,
@@ -237,18 +237,18 @@
           "matched_field": "overview",
           "bm25_rank": 8,
           "dense_rank": 10,
-          "rrf_score": 0.02899
+          "fusion_score": 0.02899
         }
       ]
     },
     {
       "query": "sterling silver earrings for sensitive ears",
       "median_ms": {
-        "bm25_ms": 0.33,
-        "dense_encode_ms": 20.94,
-        "dense_search_ms": 2.1,
-        "fusion_ms": 0.02,
-        "total_ms": 23.16
+        "bm25_ms": 0.22,
+        "dense_encode_ms": 16.53,
+        "dense_search_ms": 1.59,
+        "fusion_ms": 0.01,
+        "total_ms": 18.4
       },
       "results": [
         {
@@ -262,7 +262,7 @@
           "matched_field": "overview",
           "bm25_rank": 1,
           "dense_rank": 1,
-          "rrf_score": 0.03279
+          "fusion_score": 0.03279
         },
         {
           "rank": 2,
@@ -275,7 +275,7 @@
           "matched_field": "description",
           "bm25_rank": 7,
           "dense_rank": 4,
-          "rrf_score": 0.03055
+          "fusion_score": 0.03055
         },
         {
           "rank": 3,
@@ -288,7 +288,7 @@
           "matched_field": "overview",
           "bm25_rank": 11,
           "dense_rank": 3,
-          "rrf_score": 0.02996
+          "fusion_score": 0.02996
         },
         {
           "rank": 4,
@@ -301,7 +301,7 @@
           "matched_field": "overview",
           "bm25_rank": 3,
           "dense_rank": 15,
-          "rrf_score": 0.02921
+          "fusion_score": 0.02921
         },
         {
           "rank": 5,
@@ -314,18 +314,18 @@
           "matched_field": "overview",
           "bm25_rank": 4,
           "dense_rank": 18,
-          "rrf_score": 0.02845
+          "fusion_score": 0.02845
         }
       ]
     },
     {
       "query": "soft queen size bed sheets",
       "median_ms": {
-        "bm25_ms": 0.36,
-        "dense_encode_ms": 22.17,
-        "dense_search_ms": 1.8,
-        "fusion_ms": 0.02,
-        "total_ms": 24.54
+        "bm25_ms": 0.23,
+        "dense_encode_ms": 16.38,
+        "dense_search_ms": 1.59,
+        "fusion_ms": 0.01,
+        "total_ms": 18.25
       },
       "results": [
         {
@@ -339,7 +339,7 @@
           "matched_field": "overview",
           "bm25_rank": 1,
           "dense_rank": 8,
-          "rrf_score": 0.0311
+          "fusion_score": 0.0311
         },
         {
           "rank": 2,
@@ -352,7 +352,7 @@
           "matched_field": "overview",
           "bm25_rank": 9,
           "dense_rank": 1,
-          "rrf_score": 0.03089
+          "fusion_score": 0.03089
         },
         {
           "rank": 3,
@@ -365,7 +365,7 @@
           "matched_field": "specs",
           "bm25_rank": 10,
           "dense_rank": 6,
-          "rrf_score": 0.02944
+          "fusion_score": 0.02944
         },
         {
           "rank": 4,
@@ -378,7 +378,7 @@
           "matched_field": "overview",
           "bm25_rank": 11,
           "dense_rank": 12,
-          "rrf_score": 0.02797
+          "fusion_score": 0.02797
         },
         {
           "rank": 5,
@@ -391,7 +391,7 @@
           "matched_field": "overview",
           "bm25_rank": 15,
           "dense_rank": 10,
-          "rrf_score": 0.02762
+          "fusion_score": 0.02762
         }
       ]
     }

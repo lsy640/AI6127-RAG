@@ -213,6 +213,27 @@ def clean_list(items, field):
     return out
 
 
+_MONTHS = {m: i for i, m in enumerate(
+    ["january", "february", "march", "april", "may", "june", "july", "august",
+     "september", "october", "november", "december"], start=1)}
+
+
+def parse_date(value):
+    """'October 9, 2015' -> '2015-10-09'；无法解析返回 None。"""
+    m = re.match(r"\s*([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})", str(value or ""))
+    if not m or m.group(1).lower() not in _MONTHS:
+        return None
+    return f"{int(m.group(3)):04d}-{_MONTHS[m.group(1).lower()]:02d}-{int(m.group(2)):02d}"
+
+
+def _detail(p, key):
+    v = (p.get("details") or {}).get(key)
+    if v is None or isinstance(v, (dict, list)):
+        return None
+    v = clean_text(str(v), "meta")
+    return v or None
+
+
 def clean_details(details):
     """规格：去噪声键、跳过 dict/list 值、Manufacturer 与 Brand 相同时去重。"""
     specs = []
@@ -255,6 +276,15 @@ def product_record(p, category):
             "rating_number": int(float(p.get("rating_number"))),
             "store": clean_text(p.get("store"), "store"),
             "main_category": CATEGORIES[category],
+            # 上架日期不进入检索正文（对语义无用），但保留在 meta 中用于时间线过滤
+            "date_first_available": parse_date((p.get("details") or {}).get("Date First Available")),
+            # 结构化属性：用于元数据过滤、澄清提问（按属性分布选问题）和约束校验
+            "categories": clean_list(p.get("categories"), "categories"),
+            "brand": _detail(p, "Brand"),
+            "material": _detail(p, "Material") or _detail(p, "Material Type"),
+            "color": _detail(p, "Color"),
+            "recommended_age": _detail(p, "Manufacturer recommended age"),
+            "department": _detail(p, "Department"),
         },
     }
     if not (rec["title"] and rec["categories"] and rec["features"]

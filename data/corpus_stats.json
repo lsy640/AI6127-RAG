@@ -58,10 +58,12 @@
   "cleaning": {
     "html_entities:description": 9,
     "html_entities:features": 3,
+    "html_entities:meta": 1,
     "html_entities:specs": 2,
     "html_entities:store": 1,
     "html_tags:description": 7,
     "html_tags:features": 164,
+    "html_tags:meta": 1,
     "html_tags:specs": 2,
     "html_tags:title": 1,
     "spec_dropped:Batteries": 352,

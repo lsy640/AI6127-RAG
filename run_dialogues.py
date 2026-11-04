@@ -1,0 +1,133 @@
+"""
+Q4/Q5：用用户模拟器在评测场景上跑多轮对话，比较各 Agent 配置（消融实验）
+
+用法：
+    python run_dialogues.py --configs B0 B1 B2 B3 B4 full full-I1 full-I2 full-I3 --workers 6
+    python run_dialogues.py --configs full --limit 10            # 冒烟测试
+输出（eval/q5_runs/）：
+    <config>.jsonl     每段对话的完整记录（轮次、提问、推荐、证据、耗时、token）
+    summary.json/.md   各配置的指标汇总
+"""
+
+import argparse
+import json
+import statistics
+import time
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+
+import llm
+from agent import CONFIGS, Agent
+from simulator import run_dialogue
+
+BASE_DIR = Path(__file__).resolve().parent
+SCENARIOS = BASE_DIR / "eval" / "scenarios" / "scenarios.jsonl"
+OUT_DIR = BASE_DIR / "eval" / "q5_runs"
+
+# 价格：美元 / 百万 token（以 https://api-docs.deepseek.com/quick_start/pricing 为准）
+PRICE_IN, PRICE_OUT = 0.30, 1.20
+
+
+def load_scenarios(path, limit=None, ids=None):
+    with open(path, encoding="utf-8") as f:
+        scs = [json.loads(l) for l in f if l.strip()]
+    if ids:
+        scs = [s for s in scs if s["scenario_id"] in ids]
+    return scs[:limit] if limit else scs
+
+
+def one(config_name, sc, max_turns, k):
+    usage = llm.Usage()
+    agent = Agent(CONFIGS[config_name], usage=usage)
+    t0 = time.perf_counter()
+    rec = run_dialogue(agent, sc, max_turns=max_turns, k=k)
+    rec["wall_seconds"] = round(time.perf_counter() - t0, 2)
+    rec["usage"] = usage.snapshot()
+    return rec
+
+
+def summarize(records):
+    ok = [r for r in records if not r["error"]]
+    n = len(ok) or 1
+    lat = [t["debug"].get("latency_ms", 0) for r in ok for t in r["turns"]]
+    calls = [r["usage"]["calls"] for r in ok]
+    pin = [r["usage"]["prompt_tokens"] for r in ok]
+    pout = [r["usage"]["completion_tokens"] for r in ok]
+    complete = [r for r in ok if r["level"] == "complete"]
+    unclear = [r for r in ok if r["level"] != "complete"]
+    questions = [q for r in ok for q in r["questions"]]
+    sc = [t["debug"].get("self_check") for r in ok for t in r["turns"] if t["debug"].get("self_check")]
+    cost = [(a * PRICE_IN + b * PRICE_OUT) / 1e6 for a, b in zip(pin, pout)]
+    return {
+        "dialogues": len(records),
+        "errors": len(records) - len(ok),
+        "success_rate": sum(r["success"] for r in ok) / n,
+        "first_recommendation_success": sum(bool(r["first_rec_success"]) for r in ok) / n,
+        "success_rate_unclear_openings": (sum(r["success"] for r in unclear) / len(unclear)) if unclear else None,
+        "success_rate_complete_openings": (sum(r["success"] for r in complete) / len(complete)) if complete else None,
+        "avg_turns": statistics.mean(r["n_turns"] for r in ok) if ok else None,
+        "avg_turns_to_success": statistics.mean(r["success_turn"] for r in ok if r["success"]) if any(r["success"] for r in ok) else None,
+        "avg_questions": statistics.mean(r["n_questions"] for r in ok) if ok else None,
+        "useful_question_rate": (sum(q["useful"] for q in questions) / len(questions)) if questions else None,
+        "over_asking_rate_complete": (sum(1 for r in complete if r["n_questions"] > 0) / len(complete)) if complete else None,
+        "constraint_violation_rate": (sum(r["n_violating"] for r in ok) / max(1, sum(r["n_recommendations"] for r in ok))),
+        "no_match_responses": sum(r["none_responses"] for r in ok),
+        "self_check_supported_claim_rate": (sum(x["supported"] for x in sc) / max(1, sum(x["claims"] for x in sc))) if sc else None,
+        "turn_latency_ms_p50": statistics.median(lat) if lat else None,
+        "turn_latency_ms_p95": sorted(lat)[int(0.95 * (len(lat) - 1))] if lat else None,
+        "llm_calls_per_dialogue": statistics.mean(calls) if calls else None,
+        "tokens_per_dialogue": statistics.mean(a + b for a, b in zip(pin, pout)) if pin else None,
+        "cost_usd_per_1000_dialogues": statistics.mean(cost) * 1000 if cost else None,
+    }
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--configs", nargs="+", default=["B0", "B1", "B2", "B3", "B4", "full"])
+    parser.add_argument("--scenarios", default=str(SCENARIOS))
+    parser.add_argument("--limit", type=int)
+    parser.add_argument("--ids", nargs="*")
+    parser.add_argument("--workers", type=int, default=6)
+    parser.add_argument("--max-turns", type=int, default=5)
+    parser.add_argument("--k", type=int, default=3)
+    parser.add_argument("--tag", default="")
+    args = parser.parse_args()
+
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    scenarios = load_scenarios(args.scenarios, args.limit, args.ids)
+    # 预热检索与重排序模型
+    import hybrid_retriever as hr
+    hr.search("warm up", top_k=3, rerank=True)
+    import reranker
+    reranker.warm_up()
+
+    summary_path = OUT_DIR / f"summary{args.tag}.json"
+    summary = json.loads(summary_path.read_text()) if summary_path.exists() else {}
+    for name in args.configs:
+        t0 = time.time()
+        with ThreadPoolExecutor(max_workers=args.workers) as ex:
+            records = list(ex.map(lambda sc: one(name, sc, args.max_turns, args.k), scenarios))
+        with open(OUT_DIR / f"{name}{args.tag}.jsonl", "w", encoding="utf-8") as f:
+            for r in records:
+                f.write(json.dumps(r, ensure_ascii=False, default=str) + "\n")
+        summary[name] = summarize(records)
+        summary[name]["wall_minutes"] = round((time.time() - t0) / 60, 1)
+        print(f"[{name}] success {summary[name]['success_rate']:.3f} | questions {summary[name]['avg_questions']:.2f} "
+              f"| violations {summary[name]['constraint_violation_rate']:.3f} | errors {summary[name]['errors']} "
+              f"| {summary[name]['wall_minutes']} min", flush=True)
+        summary_path.write_text(json.dumps(summary, indent=2))
+
+    cols = ["success_rate", "first_recommendation_success", "avg_turns", "avg_questions",
+            "useful_question_rate", "over_asking_rate_complete", "constraint_violation_rate",
+            "self_check_supported_claim_rate", "llm_calls_per_dialogue", "turn_latency_ms_p50",
+            "cost_usd_per_1000_dialogues"]
+    fmt = lambda v: "-" if v is None else (f"{v:.3f}" if isinstance(v, float) else str(v))
+    lines = ["| config | " + " | ".join(cols) + " |", "|" + "---|" * (len(cols) + 1)]
+    for name, s in summary.items():
+        lines.append(f"| {name} | " + " | ".join(fmt(s.get(c)) for c in cols) + " |")
+    (OUT_DIR / f"summary{args.tag}.md").write_text("\n".join(lines) + "\n")
+    print("\n".join(lines))
+
+
+if __name__ == "__main__":
+    main()

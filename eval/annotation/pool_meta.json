@@ -1,10 +1,19 @@
 {
-  "retriever": "hybrid_retriever (BM25 + bge-m3 FAISS + RRF, parent-document)",
-  "kb": "data/kb.json",
+  "scenarios": 180,
+  "decision_records": 360,
+  "relevance_records": 1080,
+  "pool_size_per_scenario": 6,
+  "pool_configs": [
+    "rrf+rerank+filters",
+    "rrf+rerank",
+    "rrf",
+    "bm25",
+    "dense",
+    "dense-zh",
+    "rrf+rerank-zh"
+  ],
   "retrieval_unit": "chunk",
   "faiss_index": "faiss_chunk.bin",
   "faiss_built_at": "2026-11-03 23:30:26",
-  "bge_prompt": false,
-  "top_k": 5,
-  "records": 1050
+  "bge_prompt": false
 }

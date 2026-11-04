@@ -1,0 +1,199 @@
+{
+  "chunk:bm25": {
+    "queries": 180,
+    "latency_ms_mean": 0.33161111111111113,
+    "latency_ms_p50": 0.29,
+    "prog": {
+      "P@5": 0.37,
+      "R@10": 0.1777,
+      "MRR@10": 0.5175,
+      "nDCG@10": 0.3801
+    }
+  },
+  "chunk:dense": {
+    "queries": 180,
+    "latency_ms_mean": 22.26838888888889,
+    "latency_ms_p50": 19.525,
+    "prog": {
+      "P@5": 0.4278,
+      "R@10": 0.1844,
+      "MRR@10": 0.6172,
+      "nDCG@10": 0.4251
+    }
+  },
+  "chunk:rrf": {
+    "queries": 180,
+    "latency_ms_mean": 20.141,
+    "latency_ms_p50": 19.77,
+    "prog": {
+      "P@5": 0.4444,
+      "R@10": 0.2079,
+      "MRR@10": 0.6136,
+      "nDCG@10": 0.4395
+    }
+  },
+  "chunk:rrf-w(bm25=0.5)": {
+    "queries": 180,
+    "latency_ms_mean": 19.860555555555557,
+    "latency_ms_p50": 19.45,
+    "prog": {
+      "P@5": 0.4567,
+      "R@10": 0.211,
+      "MRR@10": 0.6239,
+      "nDCG@10": 0.453
+    }
+  },
+  "chunk:rrf-w(dense=0.5)": {
+    "queries": 180,
+    "latency_ms_mean": 20.94011111111111,
+    "latency_ms_p50": 20.28,
+    "prog": {
+      "P@5": 0.4267,
+      "R@10": 0.1995,
+      "MRR@10": 0.5906,
+      "nDCG@10": 0.4268
+    }
+  },
+  "chunk:rrf+rerank": {
+    "queries": 180,
+    "latency_ms_mean": 687.6577222222222,
+    "latency_ms_p50": 674.5699999999999,
+    "prog": {
+      "P@5": 0.5044,
+      "R@10": 0.2292,
+      "MRR@10": 0.6858,
+      "nDCG@10": 0.4946
+    }
+  },
+  "chunk:rrf+filters": {
+    "queries": 180,
+    "latency_ms_mean": 22.029222222222224,
+    "latency_ms_p50": 21.5,
+    "prog": {
+      "P@5": 0.6578,
+      "R@10": 0.3279,
+      "MRR@10": 0.7728,
+      "nDCG@10": 0.6608
+    }
+  },
+  "chunk:rrf+rerank+filters": {
+    "queries": 180,
+    "latency_ms_mean": 787.4351666666666,
+    "latency_ms_p50": 793.0550000000001,
+    "prog": {
+      "P@5": 0.7022,
+      "R@10": 0.3532,
+      "MRR@10": 0.831,
+      "nDCG@10": 0.7112
+    }
+  },
+  "chunk:zh:dense": {
+    "queries": 180,
+    "latency_ms_mean": 20.583833333333335,
+    "latency_ms_p50": 19.43,
+    "prog": {
+      "P@5": 0.1522,
+      "R@10": 0.0638,
+      "MRR@10": 0.2998,
+      "nDCG@10": 0.155
+    }
+  },
+  "chunk:zh:rrf": {
+    "queries": 180,
+    "latency_ms_mean": 19.58866666666667,
+    "latency_ms_p50": 19.395,
+    "prog": {
+      "P@5": 0.0756,
+      "R@10": 0.0394,
+      "MRR@10": 0.1516,
+      "nDCG@10": 0.0783
+    }
+  },
+  "chunk:zh:rrf+rerank": {
+    "queries": 180,
+    "latency_ms_mean": 833.9996666666667,
+    "latency_ms_p50": 803.99,
+    "prog": {
+      "P@5": 0.1933,
+      "R@10": 0.0643,
+      "MRR@10": 0.3284,
+      "nDCG@10": 0.1668
+    }
+  },
+  "chunk:zh→en:rrf+rerank": {
+    "queries": 180,
+    "latency_ms_mean": 780.1550555555556,
+    "latency_ms_p50": 792.24,
+    "prog": {
+      "P@5": 0.5044,
+      "R@10": 0.2305,
+      "MRR@10": 0.6534,
+      "nDCG@10": 0.4905
+    }
+  },
+  "timeline": {
+    "text": {
+      "date_precision@10": 0.2178,
+      "date_and_need_precision@10": 0.1167
+    },
+    "date_filter": {
+      "date_precision@10": 1.0,
+      "date_and_need_precision@10": 0.291
+    }
+  },
+  "product:bm25": {
+    "queries": 180,
+    "latency_ms_mean": 0.18827777777777777,
+    "latency_ms_p50": 0.15,
+    "prog": {
+      "P@5": 0.4,
+      "R@10": 0.1826,
+      "MRR@10": 0.5539,
+      "nDCG@10": 0.3924
+    }
+  },
+  "product:dense": {
+    "queries": 180,
+    "latency_ms_mean": 20.238166666666668,
+    "latency_ms_p50": 17.825,
+    "prog": {
+      "P@5": 0.4478,
+      "R@10": 0.1896,
+      "MRR@10": 0.6137,
+      "nDCG@10": 0.4379
+    }
+  },
+  "product:rrf": {
+    "queries": 180,
+    "latency_ms_mean": 18.30172222222222,
+    "latency_ms_p50": 18.06,
+    "prog": {
+      "P@5": 0.4589,
+      "R@10": 0.2053,
+      "MRR@10": 0.6248,
+      "nDCG@10": 0.4538
+    }
+  },
+  "product:rrf+rerank": {
+    "queries": 180,
+    "latency_ms_mean": 739.7989444444445,
+    "latency_ms_p50": 765.79,
+    "prog": {
+      "P@5": 0.5111,
+      "R@10": 0.2333,
+      "MRR@10": 0.6802,
+      "nDCG@10": 0.5016
+    }
+  },
+  "product:rrf+rerank+filters": {
+    "queries": 180,
+    "latency_ms_mean": 841.9984444444444,
+    "latency_ms_p50": 814.785,
+    "prog": {
+      "P@5": 0.72,
+      "R@10": 0.3604,
+      "MRR@10": 0.8312,
+      "nDCG@10": 0.7236
+    }
+  }
+}

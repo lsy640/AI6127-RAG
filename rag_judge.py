@@ -22,12 +22,13 @@ For every generated answer in eval/q4_results_<tag>.jsonl:
    query. Gives an LLM version of context precision that needs no human
    labels, and lets us measure judge-vs-human agreement on the gold set.
 
-Judge model: $JUDGE_MODEL if set, otherwise $DEEPSEEK_MODEL. Using a
+Judge model: $JUDGE_MODEL if set, otherwise $DEEPSEEK_MODEL.
+Input: dialogue records from run_dialogues.py (eval/q5_runs/<config>.jsonl). Using a
 different (or stronger) model than the generator reduces self-preference
 bias.
 
 Usage:
-    python rag_judge.py --tag main --workers 8
+    python rag_judge.py --configs B0 full --workers 6
 """
 
 import argparse
@@ -109,6 +110,7 @@ def ask(prompt):
         temperature=0,
         max_tokens=1500,
         response_format={"type": "json_object"},
+        extra_body={"thinking": {"type": "disabled"}},
     )
     usage = response.usage
     tokens = (usage.prompt_tokens + usage.completion_tokens) if usage else 0
@@ -199,38 +201,69 @@ def judge_one(result):
     return out
 
 
+def context_precision(relevance):
+    """RAGAS context precision：按证据顺序的平均 precision@k（只在相关位置累计）。"""
+    if not relevance or not any(relevance):
+        return 0.0 if relevance else None
+    hits, score = 0, 0.0
+    for k, r in enumerate(relevance, start=1):
+        if r:
+            hits += 1
+            score += hits / k
+    return score / sum(relevance)
+
+
+def dialogue_results(path, scenarios):
+    """把 run_dialogues.py 的对话记录转成评判输入：每段对话最后一次推荐。"""
+    out = []
+    for line in open(path, encoding="utf-8"):
+        r = json.loads(line)
+        final = r.get("final")
+        if not final or not final.get("evidence"):
+            continue
+        sc = scenarios[r["scenario_id"]]
+        out.append({"case_id": r["scenario_id"],
+                    "query": sc["full_query_zh"] if sc["language"] == "zh" else sc["full_query_en"],
+                    "answer": final["answer"], "recommendations": final["recommendations"],
+                    "evidence": final["evidence"], "error": None})
+    return out
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--tag", default="main")
-    parser.add_argument("--workers", type=int, default=4)
+    parser.add_argument("--configs", nargs="+", default=["full"])
+    parser.add_argument("--runs-dir", default=str(EVAL_DIR / "q5_runs"))
+    parser.add_argument("--workers", type=int, default=6)
     parser.add_argument("--limit", type=int)
     args = parser.parse_args()
 
-    in_file = EVAL_DIR / f"q4_results_{args.tag}.jsonl"
-    out_file = EVAL_DIR / f"q4_judge_{args.tag}.jsonl"
-
-    with open(in_file, "r", encoding="utf-8") as f:
-        results = [json.loads(line) for line in f if line.strip()]
-    if args.limit:
-        results = results[:args.limit]
-
-    embed(["warm up"])  # load the embedding model before threading
-    start = time.perf_counter()
-
-    with ThreadPoolExecutor(max_workers=args.workers) as executor:
-        judged = []
-        for i, item in enumerate(executor.map(judge_one, results), start=1):
-            judged.append(item)
-            print(f"[{i}/{len(results)}] {item['case_id']} "
-                  f"faith={item.get('faithfulness')} "
-                  f"rel={item.get('answer_relevance')} "
-                  f"{'ERROR ' + item['error'] if item['error'] else ''}")
-
-    with open(out_file, "w", encoding="utf-8") as f:
-        for item in judged:
-            f.write(json.dumps(item, ensure_ascii=False) + "\n")
-
-    print(f"Done in {time.perf_counter() - start:.1f}s -> {out_file}")
+    runs = Path(args.runs_dir)
+    scenarios = {json.loads(l)["scenario_id"]: json.loads(l)
+                 for l in open(EVAL_DIR / "scenarios" / "scenarios.jsonl", encoding="utf-8")}
+    embed(["warm up"])
+    summary_path = runs / "judge_summary.json"
+    summary = json.loads(summary_path.read_text()) if summary_path.exists() else {}
+    for name in args.configs:
+        results = dialogue_results(runs / f"{name}.jsonl", scenarios)
+        results = results[:args.limit] if args.limit else results
+        with ThreadPoolExecutor(max_workers=args.workers) as executor:
+            judged = list(executor.map(judge_one, results))
+        for res, j in zip(results, judged):
+            rel = j.get("llm_context_relevance") or {}
+            order = [e["parent_asin"] for e in res["evidence"]]
+            j["context_precision"] = context_precision([rel.get(a, 0) for a in order]) if rel else None
+        with open(runs / f"judge_{name}.jsonl", "w", encoding="utf-8") as f:
+            for j in judged:
+                f.write(json.dumps(j, ensure_ascii=False) + "\n")
+        ok = [j for j in judged if not j.get("error")]
+        mean = lambda key: (sum(j[key] for j in ok if j.get(key) is not None)
+                            / max(1, sum(1 for j in ok if j.get(key) is not None)))
+        summary[name] = {"judged": len(ok), "faithfulness": mean("faithfulness"),
+                         "answer_relevance": mean("answer_relevance"),
+                         "context_precision": mean("context_precision"),
+                         "judge_model": judge_model()}
+        print(f"[{name}] {summary[name]}", flush=True)
+        summary_path.write_text(json.dumps(summary, indent=2))
 
 
 if __name__ == "__main__":

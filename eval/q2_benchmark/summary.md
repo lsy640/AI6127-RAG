@@ -2,11 +2,11 @@
 
 | 查询 | BM25 | query 编码 | FAISS 搜索 | RRF | 总计 (ms) |
 |---|---|---|---|---|---|
-| waterproof men's hiking boots | 0.4 | 22.7 | 2.2 | 0.01 | 25.2 |
-| non-stick frying pan for induction stove | 0.3 | 23.1 | 1.8 | 0.01 | 25.3 |
-| board game for family night with kids | 0.3 | 21.9 | 1.9 | 0.01 | 24.5 |
-| sterling silver earrings for sensitive ears | 0.3 | 20.9 | 2.1 | 0.02 | 23.2 |
-| soft queen size bed sheets | 0.4 | 22.2 | 1.8 | 0.02 | 24.5 |
+| waterproof men's hiking boots | 0.3 | 16.7 | 1.6 | 0.01 | 18.6 |
+| non-stick frying pan for induction stove | 0.2 | 16.7 | 1.6 | 0.01 | 18.5 |
+| board game for family night with kids | 0.2 | 16.5 | 1.6 | 0.01 | 18.4 |
+| sterling silver earrings for sensitive ears | 0.2 | 16.5 | 1.6 | 0.01 | 18.4 |
+| soft queen size bed sheets | 0.2 | 16.4 | 1.6 | 0.01 | 18.2 |
 
 **waterproof men's hiking boots**
 

@@ -11,21 +11,32 @@
 AI6127/
 ├── dataset.py              # Q1：全量流式读取 + 蓄水池随机采样、过滤、清洗、去重、字段级切块、语料统计
 ├── corpus.py               # 知识库统一读取（每个进程只加载一次）与 BM25 分词器
-├── sparse_bm25.py          # BM25 稀疏检索（稀疏矩阵实现；小写/去标点/去停用词；chunk 合并到商品）
+├── attributes.py           # 商品结构化属性（品类、人群、年龄段、价格段、材质）与约束校验
+├── sparse_bm25.py          # BM25 稀疏检索（稀疏矩阵实现；chunk 合并到商品）
 ├── build_faiss.py          # bge-m3 稠密向量索引（IndexFlatIP）；--unit chunk|product，--prompt
-├── hybrid_retriever.py     # 混合检索：BM25 + FAISS → 父文档合并 → RRF → 商品级 Top-k（含命中字段、分阶段计时）
-├── benchmark_queries.py    # Q2：五条查询的结果与查询速度（预热、重复测量、分阶段耗时）
-├── generator.py            # Q4：证据整理 + DeepSeek 生成（JSON 输出、引用校验）
-├── app.py                  # Q2/Q4：Gradio 网页界面（检索 + 生成 + 价格/评分 + 命中字段 + 性能指标）
-├── build_annotation_set.py # Q4：冻结 Top-5 检索结果，生成待标注记录与标注表
-├── compute_iaa.py          # Q4：标注一致性（一致率、Cohen's κ、Fleiss' κ）与金标准
-├── run_q4_evaluation.py    # Q4：批量生成（支持并发、消融开关）
-├── rag_judge.py            # Q4：RAGAS 式指标（faithfulness / answer relevance / context relevance）
-├── evaluate_q4.py          # Q4：P/R/F1、RAG 指标、幻觉率、延迟/吞吐/成本汇总
+├── hybrid_retriever.py     # search()：融合方式 / 元数据与时间过滤 / 重排序；父文档合并；分阶段计时
+├── reranker.py             # Q3：bge-reranker-v2-m3 交叉编码器重排序
+├── benchmark_queries.py    # Q2：五条查询的结果与查询速度
+├── eval_retrieval.py       # Q3：检索配置评测（P@5、R@10、MRR、nDCG、时间线实验）
+├── llm.py                  # DeepSeek 调用封装（JSON、重试、用量统计、思考模式开关）
+├── generator.py            # 证据整理（价格/评分来自 meta）、JSON 解析与引用校验
+├── agent.py                # Q4/Q5：多轮澄清式推荐 Agent（状态追踪、决策、检索、证据检查、生成、自检）
+├── simulator.py            # Q4/Q5：用户模拟器（只知道隐藏需求，不知道目标商品）
+├── run_dialogues.py        # Q4/Q5：多轮对话评测与消融
+├── evaluate_decisions.py   # Q4：澄清决策 P/R/F1
+├── rag_judge.py            # Q4：faithfulness / answer relevance / context precision
+├── build_scenarios.py      # Q4：生成评测场景
+├── build_annotation_set.py # Q4：标注记录与标注表（决策 + pooled 相关性）
+├── compute_iaa.py          # Q4：标注一致性与金标准
+├── app.py                  # Gradio 多轮对话界面
+├── report.md               # 作业报告（英文）
 ├── eval/
-│   ├── q4_queries.jsonl    # Q4 评测查询（210 条）
-│   ├── annotation/         # 标注池、标注表、标注指南、金标准
-│   └── q2_benchmark/       # Q2 五条查询的结果与耗时（benchmark_queries.py 生成）
+│   ├── scenarios/          # 评测场景（隐藏需求、开场白、对话快照）
+│   ├── annotation/         # 标注记录、标注表、标注指南、金标准、一致率报告
+│   ├── q2_benchmark/       # Q2 五条查询的结果与耗时
+│   ├── q3_retrieval/       # Q3 检索评测结果
+│   ├── q4_decisions/       # Q4 澄清决策评测结果
+│   └── q5_runs/            # Q4/Q5 多轮对话记录与消融汇总
 ├── data/
 │   ├── kb.json             # 商品级知识库：id、text（完整正文）、meta（价格、评分、评论数、店铺、类目）
 │   ├── chunks.json         # chunk 级检索单元：chunk_id、parent_id、field（overview/description/specs）、text
@@ -148,64 +159,79 @@ Apple M5（MPS，fp16），检索 48,107 个 chunk，预热后每条查询重复
 
 五条查询的 Top-5 结果（标题、类目、价格、评分、命中字段、两路名次）见 `eval/q2_benchmark/summary.md` 与 `results.json`。首次查询还需加载模型（约 10 秒）与 GPU 预热，`app.py` 启动时已自动预热。
 
-### 检索配置与消融（Q3 可用）
+## 问题三（Question 3）：检索与排序创新
 
-`build_faiss.py` 与 `hybrid_retriever.py` 用同一组配置，保证索引与查询编码一致：
+`hybrid_retriever.search()` 统一支持以下选项，`eval_retrieval.py` 在评测场景上逐项比较：
 
-| 配置 | 建索引 | 检索 |
+| 方向 | 实现 | 开关 |
 |---|---|---|
-| chunk 级、不加前缀（默认） | `python build_faiss.py` | `python hybrid_retriever.py` |
-| 商品级（不切块） | `python build_faiss.py --unit product` | `RETRIEVAL_UNIT=product python hybrid_retriever.py` |
-| 加 BGE 指令前缀 | `python build_faiss.py --prompt` | `BGE_PROMPT=1 python hybrid_retriever.py` |
+| 1. 混合融合 | BM25-only / dense-only / RRF / 加权 RRF | `fusion="bm25"/"dense"/"rrf"/"weighted"`, `weights=(w_bm25, w_dense)` |
+| 2. 重排序 | `BAAI/bge-reranker-v2-m3` 交叉编码器（多语言）对融合后前 30 个商品重排 | `rerank=True` |
+| 3. 时间线与元数据检索 | 价格、评分、类目、上架日期、人群/年龄/材质作为结构化硬过滤；过滤后结果不足时由 agent 逐级放宽 | `filters={"price_max", "rating_min", "category", "date_after", "date_before", "predicate"}` |
+| 4. 多语言检索 | bge-m3 与重排序模型都支持中文查询英文商品；对比“中文直接检索”与“LLM 翻译成英文后检索” | `zh:*` / `zh→en:*` 配置 |
+| 5. 切块与索引 | 字段级 chunk + 父文档合并 vs 商品级索引；BM25 分词；BGE 指令前缀 | `RETRIEVAL_UNIT=chunk/product`、`BGE_PROMPT=0/1` |
 
-指令前缀 `"Represent this sentence for searching relevant passages: "` 是 BGE v1.5 系列给 query 用的指令，bge-m3 官方说明 query 和文档都不需要指令，因此默认不加。
+```bash
+python eval_retrieval.py                                   # chunk 级索引：全部配置 + 时间线实验
+RETRIEVAL_UNIT=product python eval_retrieval.py --tag product --configs bm25 dense rrf rrf+rerank --no-timeline
+```
 
-**注意**：改变检索配置后 Q4 的检索结果会变，必须在开始标注前运行 `python build_annotation_set.py` 重新生成标注池（当前配置记录在 `eval/annotation/pool_meta.json`）。
+评测：查询为每个场景的完整需求（英文/中文）；指标为 P@5、R@10、MRR@10、nDCG@10 与延迟。相关性有两种：程序化（知识库中满足隐藏需求全部硬约束的商品，覆盖完整，可算召回）与人工标注的 pooled 候选（`gold_relevance.csv`）。结果在 `eval/q3_retrieval/summary.md`。
 
-## 问题四（Question 4）：生成与评测
+## 问题四（Question 4）：多轮澄清式推荐与评测
 
-**流水线**：混合检索 Top-5 → 证据整理（价格、评分、评论数从 `meta` 读取并放在标题后；去 HTML、去重复卖点、正文截断至 220 词）→ DeepSeek 生成 JSON（回答 + 推荐 ASIN + 证据编号）→ 校验 ASIN 与证据编号，记录被过滤的推荐（用于统计幻觉率）。
+**任务**：用户与助手多轮对话；用户一开始的描述往往不完整（“想买双鞋”），助手判断信息是否足够，不够就反问，够了再基于检索证据推荐，并给出引用。
+
+**Agent 每一轮**（`agent.py`）：状态追踪 + 查询改写 → 混合检索（过滤 + 重排）→ 决策（反问 / 推荐 / 无匹配）→ 证据充分性检查 → 有据生成 → 论断级自检。
 
 ### 配置 API
 
 ```bash
 export DEEPSEEK_API_KEY=sk-...
 export DEEPSEEK_MODEL=deepseek-flash      # 以 https://api-docs.deepseek.com 上的模型名为准
-# 可选：评判模型（建议与生成模型不同，减少自评偏差）
-export JUDGE_MODEL=deepseek-v4-pro
+export JUDGE_MODEL=deepseek-v4-pro        # 可选：评判模型，建议与生成模型不同
 ```
 
-### 运行步骤
+deepseek-flash 默认开启思考模式（`temperature` 失效、输出不可复现、每次多出数百推理 token），本项目默认关闭（`llm.py`）；设置 `DEEPSEEK_THINKING=enabled` 或使用 `*+thinking` 配置可开启。
+
+### 评测集（按用户场景）
 
 ```bash
-# 0. 网页演示（检索 + 生成）
-python app.py
-
-# 1. 生成标注集（已生成好，仅在修改查询或检索器后重跑）
-python build_annotation_set.py --annotators A B C
-
-# 2. 每位标注者独立填写 eval/annotation/sheet_<名字>.xlsx（见 GUIDELINES.md），然后：
-python compute_iaa.py                 # 一致率 / κ / 金标准 gold_labels.csv
-
-# 3. 批量生成（默认使用冻结的标注检索结果）
-python run_q4_evaluation.py --workers 8 --tag main
-
-# 4. RAGAS 式指标
-python rag_judge.py --tag main --workers 8
-
-# 5. 汇总全部 Q4 指标（价格单位：美元 / 百万 token）
-python evaluate_q4.py --tag main --price-in 0.30 --price-out 1.20
+python build_scenarios.py --per-domain 60     # 180 个场景（三个领域各 60）→ eval/scenarios/scenarios.jsonl
+python build_annotation_set.py --annotators A B C   # 标注记录与标注表 → eval/annotation/（需 GPU 检索）
+python compute_iaa.py                         # 一致率、Cohen's κ、Fleiss' κ，金标准
 ```
 
-消融示例（Q5 可用）：`python run_q4_evaluation.py --no-clean --tag noclean`，再对 `noclean` 运行第 4、5 步并与 `main` 对比。
+- **场景**：隐藏完整需求（品类、人群/孩子年龄/材质、预算）+ 开场白（模糊 / 部分 / 完整三档，英文或中文），以知识库中真实商品为锚点生成，保证至少 3 个商品满足需求。
+- **标注记录**：360 条决策记录（每个场景 2 个对话快照：该问还是该推荐、该问什么）+ 约 1,080 条相关性记录（多种检索配置的结果 pooling 后，判断是否满足需求），共约 1,440 条。标注指南见 `eval/annotation/GUIDELINES.md`。
 
-### 评测设计
+### 运行评测
 
-- **标注单位**：(查询, 检索到的商品) 对，210 条查询 × Top-5 = **1,050 条**，二分类（相关 / 不相关），3 人独立标注。
-- **任务指标（P / R / F1）**：生成器要从 5 个候选中选出推荐商品，把“是否推荐”与人工“是否相关”比较，计算 micro / macro P、R、F1；另统计 **abstention accuracy**（没有相关商品时是否正确地不推荐）。
-- **RAG 指标**：faithfulness（回答中的论断是否都有证据支撑）、answer relevance（RAGAS 反向生成问题再算相似度）、context precision（人工标签版与 LLM 评判版），以及评判模型与人工标签的一致性。
-- **可靠性**：基于模型原始输出统计幻觉 ASIN 比例、无效引用比例。
-- **性能**：检索 / 生成延迟（均值、p50、p95）、吞吐（条/秒，可调并发）、每次查询 token 数与成本。
+```bash
+python evaluate_decisions.py                  # 澄清决策 P/R/F1、追问属性准确率 → eval/q4_decisions/
+python run_dialogues.py --configs full B0 --workers 6   # 用户模拟器多轮对话 → eval/q5_runs/
+python rag_judge.py --configs full B0         # faithfulness / answer relevance / context precision
+python app.py                                 # 多轮对话网页
+```
+
+- **用户模拟器**（`simulator.py`）：只知道隐藏需求，不知道目标商品（避免泄题）；只回答被问到的属性；推荐失败时指出一个被违反的约束；最多 5 轮。成功 = 前 3 个推荐中至少一个满足全部硬约束（程序化判断）。
+- **指标**：成功率、首次推荐成功率、平均轮数、提问数、有效提问率、完整需求下的过度追问率、约束违反率、自检支持率、每轮延迟、每段对话的 LLM 调用数与成本；RAGAS 式 faithfulness、answer relevance、context precision。
+
+## 问题五（Question 5）：下游任务创新与消融
+
+| 创新点 | 内容 | 对应开关（`agent.AgentConfig`） |
+|---|---|---|
+| I1 澄清决策 + 信息增益选问 | 何时问：规则 / LLM 判断 / 候选分布熵；问什么：熵最大的属性（选项来自候选中最常见的取值） | `clarify`, `select` |
+| I2 查询改写 + 约束→元数据过滤 | 对话改写成独立英文查询（同时处理中文）；预算、人群、年龄、材质转成硬过滤，结果不足时逐级放宽 | `rewrite`, `filters` |
+| I3 证据充分性检查 + 论断级自检 | CRAG 式：程序化校验硬约束 + LLM 判断候选是否匹配，不足则补检索或如实告知；生成后逐条核对论断，价格用 meta 核对 | `check` |
+| I4（可选）方面级推荐理由 | 每个推荐按用户关心的方面给出证据或“未说明” | `aspects` |
+
+```bash
+python run_dialogues.py --configs B0 B1 B2 B3 B4 full full-I1 full-I2 full-I3 --workers 6
+python run_dialogues.py --configs clarify-rule clarify-llm select-llm select-random full+thinking
+```
+
+配置定义见 `agent.CONFIGS`：B0（单轮 RAG，拼接历史）→ B1（+改写）→ B2（+LLM 澄清）→ B3（+熵选问）→ B4（+过滤）→ full（+证据检查与自检）；`full-I*` 为逐项去掉。所有配置共用同一检索（RRF + 重排序），差异只来自 Q5 创新点。结果在 `eval/q5_runs/summary.md`。
 
 ## 团队协作说明（Notes for Teammates）
 
@@ -217,9 +243,3 @@ python evaluate_q4.py --tag main --price-in 0.30 --price-out 1.20
 - **断点续编**：`build_faiss.py` 按片编码，每 4 片保存一次断点（`*.partial.npz`），中断后重跑会接着编码；Apple Silicon 上每片后释放 MPS 缓存，避免显存持续增长导致 OOM。
 - **评测集**：Q4 的 210 条查询 × Top-5 = 1,050 条人工标注记录，同时可用于 Q3 的 P@5、nDCG@5 等检索指标。
 - **HF Hub 警告说明**：终端若出现关于未认证 Hugging Face Hub Token 的警告，仅为请求速率限制提醒，不影响演示系统的正常运行。
-
-## 报告可扩展方向（Possible Extensions）
-
-- **引入 LLM 生成阶段**：在检索结果基础上接入大语言模型（LLM），根据检索到的商品段落自动生成自然语言回答（完整 RAG 闭环）。
-- **批量定量评测**：构建测试查询集，计算 `Recall@k`、`MRR` 等标准信息检索评价指标。
-- **消融实验（Ablation Study）**：对比分析仅使用 BM25、仅使用 FAISS 与使用混合 RRF 融合检索在准确率与响应耗时上的表现差异。
