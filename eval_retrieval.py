@@ -99,6 +99,31 @@ def metrics(ranked, rel, k_p=5, k=10):
     return p5, r10, mrr, (dcg / idcg if idcg else 0.0)
 
 
+def condensed_precision(k=5):
+    """人工 qrels 只覆盖 pooled 商品：在“只保留已标注商品”的压缩列表上算 P@5（Sakai, SIGIR 2007）。
+    读取已有的 runs_*.jsonl，写入 condensed_p5.json。"""
+    if not (ANN_DIR / "gold_relevance.csv").exists():
+        return None
+    gold = {}
+    with open(ANN_DIR / "gold_relevance.csv", encoding="utf-8-sig") as f:
+        for row in csv.DictReader(f):
+            gold[row["record_id"]] = int(float(row["relevant"]))
+    judged = {}
+    for r in load_jsonl(ANN_DIR / "pool.jsonl"):
+        judged.setdefault(r["scenario_id"], {})[r["parent_asin"]] = gold.get(r["record_id"], 0)
+    out = {}
+    for path in sorted(OUT_DIR.glob("runs_*.jsonl")):
+        n = rel = 0
+        for row in load_jsonl(path):
+            h = judged.get(row["scenario_id"], {})
+            top = [a for a in row["ranked"] if a in h][:k]
+            n += len(top)
+            rel += sum(h[a] for a in top)
+        out[path.stem[len("runs_"):]] = round(rel / max(1, n), 4)
+    (OUT_DIR / "condensed_p5.json").write_text(json.dumps(out, indent=1, ensure_ascii=False))
+    return out
+
+
 def translate_queries(scenarios):
     cache = json.loads(TRANSLATIONS.read_text()) if TRANSLATIONS.exists() else {}
     todo = [s for s in scenarios if s["scenario_id"] not in cache]
@@ -167,7 +192,11 @@ def main():
     parser.add_argument("--limit", type=int)
     parser.add_argument("--tag", default="chunk")
     parser.add_argument("--no-timeline", action="store_true")
+    parser.add_argument("--condensed-only", action="store_true", help="只根据已有运行结果计算人工 qrels 的压缩列表 P@5")
     args = parser.parse_args()
+    if args.condensed_only:
+        print(json.dumps(condensed_precision(), indent=1, ensure_ascii=False))
+        return
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
     scenarios = load_jsonl(SCENARIOS)[:args.limit] if args.limit else load_jsonl(SCENARIOS)
@@ -210,6 +239,7 @@ def main():
         for k, v in summary["timeline"].items():
             lines.append(f"| {k} | {v['date_precision@10']} | {v['date_and_need_precision@10']} |")
     (OUT_DIR / "summary.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    condensed_precision()
     print("\n".join(lines))
 
 

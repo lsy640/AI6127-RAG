@@ -1,6 +1,6 @@
 {
   "clarify-rule": {
-    "gold": "rule-derived (provisional)",
+    "gold": "human",
     "records": 360,
     "precision": 1.0,
     "recall": 1.0,
@@ -13,62 +13,62 @@
       "tn": 102
     },
     "ask_slot_accuracy": 0.6046511627906976,
-    "latency_ms_mean": 4464.579511771444,
+    "latency_ms_mean": 3750.5604462701335,
     "llm_calls_per_decision": 1.0,
-    "tokens_per_decision": 544.1277777777777
+    "tokens_per_decision": 544.0972222222222
   },
   "clarify-llm": {
-    "gold": "rule-derived (provisional)",
+    "gold": "human",
     "records": 360,
-    "precision": 0.9848484848484849,
-    "recall": 0.7558139534883721,
-    "f1": 0.8552631578947368,
-    "accuracy": 0.8166666666666667,
+    "precision": 0.9797979797979798,
+    "recall": 0.751937984496124,
+    "f1": 0.8508771929824561,
+    "accuracy": 0.8111111111111111,
     "confusion": {
-      "tp": 195,
-      "fp": 3,
-      "fn": 63,
-      "tn": 99
+      "tp": 194,
+      "fp": 4,
+      "fn": 64,
+      "tn": 98
     },
-    "ask_slot_accuracy": 0.5538461538461539,
-    "latency_ms_mean": 4394.927908802896,
-    "llm_calls_per_decision": 1.0,
-    "tokens_per_decision": 543.8916666666667
+    "ask_slot_accuracy": 0.5515463917525774,
+    "latency_ms_mean": 4034.571179501169,
+    "llm_calls_per_decision": 1.0027777777777778,
+    "tokens_per_decision": 546.1305555555556
   },
   "clarify-llm+thinking": {
-    "gold": "rule-derived (provisional)",
+    "gold": "human",
     "records": 360,
-    "precision": 0.9910714285714286,
-    "recall": 0.8604651162790697,
-    "f1": 0.9211618257261411,
-    "accuracy": 0.8944444444444445,
+    "precision": 0.9778761061946902,
+    "recall": 0.8565891472868217,
+    "f1": 0.9132231404958677,
+    "accuracy": 0.8833333333333333,
     "confusion": {
-      "tp": 222,
-      "fp": 2,
-      "fn": 36,
-      "tn": 100
+      "tp": 221,
+      "fp": 5,
+      "fn": 37,
+      "tn": 97
     },
-    "ask_slot_accuracy": 0.5630630630630631,
-    "latency_ms_mean": 4400.388597703811,
+    "ask_slot_accuracy": 0.5656108597285068,
+    "latency_ms_mean": 4400.586431885151,
     "llm_calls_per_decision": 1.0,
-    "tokens_per_decision": 760.4666666666667
+    "tokens_per_decision": 769.0111111111111
   },
   "full": {
-    "gold": "rule-derived (provisional)",
+    "gold": "human",
     "records": 360,
-    "precision": 0.8242811501597445,
+    "precision": 0.8269230769230769,
     "recall": 1.0,
-    "f1": 0.9036777583187391,
-    "accuracy": 0.8472222222222222,
+    "f1": 0.9052631578947368,
+    "accuracy": 0.85,
     "confusion": {
       "tp": 258,
-      "fp": 55,
+      "fp": 54,
       "fn": 0,
-      "tn": 47
+      "tn": 48
     },
-    "ask_slot_accuracy": 0.5736434108527132,
-    "latency_ms_mean": 4365.391882671651,
+    "ask_slot_accuracy": 0.5658914728682171,
+    "latency_ms_mean": 4275.01000753287,
     "llm_calls_per_decision": 1.0,
-    "tokens_per_decision": 544.275
+    "tokens_per_decision": 544.6194444444444
   }
 }

@@ -1,0 +1,130 @@
+{
+  "annotators": [
+    "A",
+    "B",
+    "C"
+  ],
+  "records": {
+    "decisions": 360,
+    "relevance": 1080,
+    "total": 1440
+  },
+  "labelled_per_annotator": {
+    "A": {
+      "decisions": 360,
+      "relevance": 1080
+    },
+    "B": {
+      "decisions": 360,
+      "relevance": 1080
+    },
+    "C": {
+      "decisions": 360,
+      "relevance": 1080
+    }
+  },
+  "should_ask": {
+    "pairwise": {
+      "A-B": {
+        "items": 360,
+        "percent_agreement": 1.0,
+        "cohen_kappa": 1.0
+      },
+      "A-C": {
+        "items": 360,
+        "percent_agreement": 0.9833333333333333,
+        "cohen_kappa": 0.9582172701949859
+      },
+      "B-C": {
+        "items": 360,
+        "percent_agreement": 0.9833333333333333,
+        "cohen_kappa": 0.9582172701949859
+      }
+    },
+    "mean_percent_agreement": 0.9888888888888889,
+    "mean_cohen_kappa": 0.9721448467966572,
+    "items_labelled_by_all": 360,
+    "fleiss_kappa": 0.9723076923076924,
+    "meets_80_percent": true
+  },
+  "ask_about": {
+    "pairwise": {
+      "A-B": {
+        "items": 258,
+        "percent_agreement": 0.9922480620155039,
+        "cohen_kappa": 0.9892526868282929
+      },
+      "A-C": {
+        "items": 258,
+        "percent_agreement": 0.7170542635658915,
+        "cohen_kappa": 0.622980682614353
+      },
+      "B-C": {
+        "items": 258,
+        "percent_agreement": 0.7248062015503876,
+        "cohen_kappa": 0.6324122569381735
+      }
+    },
+    "mean_percent_agreement": 0.8113695090439276,
+    "mean_cohen_kappa": 0.7482152087936065,
+    "items_labelled_by_all": 258,
+    "fleiss_kappa": 0.7415007068447286,
+    "meets_80_percent": true
+  },
+  "relevance": {
+    "pairwise": {
+      "A-B": {
+        "items": 1080,
+        "percent_agreement": 0.9694444444444444,
+        "cohen_kappa": 0.9385178029257522
+      },
+      "A-C": {
+        "items": 1080,
+        "percent_agreement": 0.712037037037037,
+        "cohen_kappa": 0.43991995997998995
+      },
+      "B-C": {
+        "items": 1080,
+        "percent_agreement": 0.7092592592592593,
+        "cohen_kappa": 0.42793522267206485
+      }
+    },
+    "mean_percent_agreement": 0.7969135802469136,
+    "mean_cohen_kappa": 0.6021243285259357,
+    "items_labelled_by_all": 1080,
+    "fleiss_kappa": 0.5932119563537522,
+    "meets_80_percent": false
+  },
+  "all_binary_records": {
+    "pairwise": {
+      "A-B": {
+        "items": 1440,
+        "percent_agreement": 0.9770833333333333,
+        "cohen_kappa": 0.9528356194295015
+      },
+      "A-C": {
+        "items": 1440,
+        "percent_agreement": 0.7798611111111111,
+        "cohen_kappa": 0.5670532533603451
+      },
+      "B-C": {
+        "items": 1440,
+        "percent_agreement": 0.7777777777777778,
+        "cohen_kappa": 0.5616938705627212
+      }
+    },
+    "mean_percent_agreement": 0.8449074074074074,
+    "mean_cohen_kappa": 0.693860914450856,
+    "items_labelled_by_all": 1440,
+    "fleiss_kappa": 0.6877178740733997,
+    "meets_80_percent": true
+  },
+  "gold": {
+    "decisions": 360,
+    "relevance": 1080,
+    "unresolved_decisions": 0,
+    "unresolved_relevance": 0,
+    "slots": 258,
+    "unresolved_slots": 0
+  }
+}

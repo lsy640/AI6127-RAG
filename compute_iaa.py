@@ -164,7 +164,8 @@ def main():
     report["all_binary_records"] = agreement(combined, all_ids)
 
     gold_ask, disp_a = gold_labels(ask, dec_ids, ANN_DIR / "adjudication_decisions.csv")
-    gold_slot, _ = gold_labels(slot, dec_ids, ANN_DIR / "adjudication_slots.csv")
+    ask_ids = [i for i in dec_ids if str(gold_ask.get(i, ("", ""))[0]) == "1"]
+    gold_slot, disp_s = gold_labels(slot, ask_ids, ANN_DIR / "adjudication_slots.csv")
     gold_rel, disp_r = gold_labels(rel, rel_ids, ANN_DIR / "adjudication_relevance.csv")
     with open(ANN_DIR / "gold_decisions.csv", "w", newline="", encoding="utf-8-sig") as f:
         w = csv.writer(f)
@@ -177,7 +178,8 @@ def main():
         for i, (v, src) in gold_rel.items():
             w.writerow([i, v, src])
     report["gold"] = {"decisions": len(gold_ask), "relevance": len(gold_rel),
-                      "unresolved_decisions": len(disp_a), "unresolved_relevance": len(disp_r)}
+                      "unresolved_decisions": len(disp_a), "unresolved_relevance": len(disp_r),
+                      "slots": len(gold_slot), "unresolved_slots": len(disp_s)}
 
     (ANN_DIR / "iaa_report.json").write_text(json.dumps(report, indent=2, ensure_ascii=False))
     print(json.dumps({k: report[k] for k in ("records", "gold")}, indent=2))

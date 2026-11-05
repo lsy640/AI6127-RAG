@@ -1,0 +1,19 @@
+{
+ "chunk_bm25": 0.6136,
+ "chunk_dense": 0.6186,
+ "chunk_rrf+filters": 0.8493,
+ "chunk_rrf+rerank+filters": 0.8861,
+ "chunk_rrf+rerank": 0.6677,
+ "chunk_rrf-w(bm25=0.5)": 0.6324,
+ "chunk_rrf-w(dense=0.5)": 0.6227,
+ "chunk_rrf": 0.5988,
+ "chunk_zh:dense": 0.3521,
+ "chunk_zh:rrf+rerank": 0.3584,
+ "chunk_zh:rrf": 0.3314,
+ "chunk_zh→en:rrf+rerank": 0.6742,
+ "product_bm25": 0.6253,
+ "product_dense": 0.6426,
+ "product_rrf+rerank+filters": 0.8914,
+ "product_rrf+rerank": 0.6828,
+ "product_rrf": 0.6221
+}

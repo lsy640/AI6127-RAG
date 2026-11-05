@@ -110,30 +110,31 @@ Top-5 results for each query (title, category, price, rating, matched field, BM2
 ### 3.1 Evaluation protocol
 
 - **Queries:** the fully specified need of each evaluation scenario (Q4), in English and in Chinese.
-- **Relevance judgments (two kinds).** *Programmatic qrels*: every catalogue product that satisfies all hard constraints of the scenario's hidden need (product-type leaf, audience / child age, budget, material). They are complete, so recall can be computed, and are used for all numbers below. *Human qrels*: the 1,080 pooled candidates (Section 4.3) judged by annotators; human-qrels metrics and `judged@5` are added automatically by `eval_retrieval.py` once `gold_relevance.csv` exists. **The human-qrels column is pending the annotation.**
+- **Relevance judgments (two kinds).** *Programmatic qrels*: every catalogue product that satisfies all hard constraints of the scenario's hidden need (product-type leaf, audience / child age, budget, material). They are complete, so recall can be computed, and are used for all numbers below. *Human qrels*: the 1,080 pooled candidates (6 per scenario, Section 4.3) judged by three annotators (majority vote). Because only the pooled products are judged, we report human P@5 on the condensed list (precision over the judged products among the top 5; Sakai, SIGIR 2007) and human nDCG@10 with unjudged products counted as non-relevant; on average 27–55 % of a configuration's top 5 is judged (`judged@5`, in `eval/q3_retrieval/summary.md`). The pool was built from the chunk index, so human metrics slightly favour chunk-level configurations.
+- **Agreement between the two kinds:** the programmatic labels agree with the human gold on 80.1 % of the pooled pairs (κ = 0.61). They are precise (92 % of programmatically relevant products are judged relevant) but strict (they miss 31 % of human-relevant products, e.g. a product whose category leaf differs from the target leaf but is the same kind of item), so absolute programmatic numbers are conservative; both kinds rank the configurations in almost the same order.
 - **Metrics:** Precision@5, Recall@10, MRR@10, nDCG@10, plus mean latency per query (Apple M5, warm). 180 queries (121 English + 59 Chinese originals; every scenario has both an English and a Chinese version). Computed by `eval_retrieval.py`.
 
 ### 3.2 Results
 
-| Configuration | P@5 | R@10 | MRR@10 | nDCG@10 | Latency (ms) |
-|---|---|---|---|---|---|
-| BM25 only | 0.370 | 0.178 | 0.518 | 0.380 | 0.3 |
-| Dense only (bge-m3) | 0.428 | 0.184 | 0.617 | 0.425 | 22 |
-| Hybrid, RRF (equal weights) | 0.444 | 0.208 | 0.614 | 0.440 | 20 |
-| Hybrid, weighted RRF (BM25 weight 0.5) | 0.457 | 0.211 | 0.624 | 0.453 | 20 |
-| Hybrid, weighted RRF (dense weight 0.5) | 0.427 | 0.200 | 0.591 | 0.427 | 21 |
-| RRF + cross-encoder re-ranking | 0.504 | 0.229 | 0.686 | 0.495 | 688 |
-| RRF + metadata filters | 0.658 | 0.328 | 0.773 | 0.661 | 22 |
-| RRF + re-ranking + metadata filters | **0.702** | **0.353** | **0.831** | **0.711** | 787 |
-| Product-level index: BM25 | 0.400 | 0.183 | 0.554 | 0.392 | 0.3 |
-| Product-level index: dense | 0.448 | 0.190 | 0.614 | 0.438 | 20 |
-| Product-level index: RRF | 0.459 | 0.205 | 0.625 | 0.454 | 18 |
-| Product-level index: RRF + re-ranking | 0.511 | 0.233 | 0.680 | 0.502 | 740 |
-| Product-level index: RRF + re-ranking + filters | **0.720** | **0.360** | **0.831** | **0.724** | 842 |
-| Chinese queries, dense only | 0.152 | 0.064 | 0.300 | 0.155 | 21 |
-| Chinese queries, RRF | 0.076 | 0.039 | 0.152 | 0.078 | 20 |
-| Chinese queries, RRF + re-ranking | 0.193 | 0.064 | 0.328 | 0.167 | 834 |
-| Chinese queries, LLM-translated → RRF + re-ranking | 0.504 | 0.231 | 0.653 | 0.491 | 780 |
+| Configuration | P@5 | R@10 | MRR@10 | nDCG@10 | Human P@5 (judged) | Human nDCG@10 | Latency (ms) |
+|---|---|---|---|---|---|---|---|
+| BM25 only | 0.370 | 0.178 | 0.518 | 0.380 | 0.614 | 0.423 | 0.3 |
+| Dense only (bge-m3) | 0.428 | 0.184 | 0.617 | 0.425 | 0.619 | 0.536 | 22 |
+| Hybrid, RRF (equal weights) | 0.444 | 0.208 | 0.614 | 0.440 | 0.599 | 0.579 | 20 |
+| Hybrid, weighted RRF (BM25 weight 0.5) | 0.457 | 0.211 | 0.624 | 0.453 | 0.632 | 0.564 | 20 |
+| Hybrid, weighted RRF (dense weight 0.5) | 0.427 | 0.200 | 0.591 | 0.427 | 0.623 | 0.510 | 21 |
+| RRF + cross-encoder re-ranking | 0.504 | 0.229 | 0.686 | 0.495 | 0.668 | 0.635 | 688 |
+| RRF + metadata filters | 0.658 | 0.328 | 0.773 | 0.661 | 0.849 | 0.634 | 22 |
+| RRF + re-ranking + metadata filters | **0.702** | **0.353** | **0.831** | **0.711** | **0.886** | **0.792** | 787 |
+| Product-level index: BM25 | 0.400 | 0.183 | 0.554 | 0.392 | 0.625 | 0.379 | 0.3 |
+| Product-level index: dense | 0.448 | 0.190 | 0.614 | 0.438 | 0.643 | 0.449 | 20 |
+| Product-level index: RRF | 0.459 | 0.205 | 0.625 | 0.454 | 0.622 | 0.495 | 18 |
+| Product-level index: RRF + re-ranking | 0.511 | 0.233 | 0.680 | 0.502 | 0.683 | 0.608 | 740 |
+| Product-level index: RRF + re-ranking + filters | **0.720** | **0.360** | **0.831** | **0.724** | **0.891** | **0.753** | 842 |
+| Chinese queries, dense only | 0.152 | 0.064 | 0.300 | 0.155 | 0.352 | 0.219 | 21 |
+| Chinese queries, RRF | 0.076 | 0.039 | 0.152 | 0.078 | 0.331 | 0.129 | 20 |
+| Chinese queries, RRF + re-ranking | 0.193 | 0.064 | 0.328 | 0.167 | 0.358 | 0.233 | 834 |
+| Chinese queries, LLM-translated → RRF + re-ranking | 0.504 | 0.231 | 0.653 | 0.491 | 0.674 | 0.507 | 780 |
 
 Timeline search (180 queries with an added "released after 2021" requirement, RRF + re-ranking, top-10):
 
@@ -142,11 +143,11 @@ Timeline search (180 queries with an added "released after 2021" requirement, RR
 | Requirement written in the query text | 0.218 | 0.117 |
 | Requirement as a `date_first_available` filter | **1.000** | **0.291** |
 
-*All numbers use programmatic qrels; human-qrels metrics are pending the annotation (Section 4.3). Absolute recall is low because many scenarios have dozens of satisfying products and only 10 are retrieved.*
+*P@5, R@10, MRR@10 and nDCG@10 use programmatic qrels (absolute recall is low because many scenarios have dozens of satisfying products and only 10 are retrieved); the two human columns use the annotated pool. Under human judgments re-ranking (+0.07 judged P@5, +0.06 nDCG) and metadata filters (+0.25 judged P@5) are confirmed as the main gains, translation recovers Chinese queries (0.33 → 0.67), whereas plain RRF is no better than its single retrievers on the judged pool (0.599 vs 0.614 / 0.619) although it has the higher nDCG (0.579 vs 0.423 / 0.536).*
 
 ### 3.3 Innovations
 
-**(1) Hybrid fusion.** BM25 captures exact attribute terms ("925 sterling silver", "1000-piece"), while dense retrieval captures paraphrases ("for my toddler" ≈ "ages 2+"). RRF combines their ranks without score calibration. Fusion beats both single retrievers (P@5 0.444 vs 0.370 / 0.428); down-weighting BM25 to 0.5 helps slightly (0.457), down-weighting dense hurts (0.427), so dense is the stronger signal but BM25 still adds exact-term matches. *Example (S075, "a microfiber bed sheet set under $50"):* BM25 ranks a cooling fitted sheet second (keyword overlap on "sheet"), dense ranks an oversize quilt third; RRF keeps the items both agree on and all of its top-3 satisfy the need (P@5 +0.6 over the better single retriever).
+**(1) Hybrid fusion.** BM25 captures exact attribute terms ("925 sterling silver", "1000-piece"), while dense retrieval captures paraphrases ("for my toddler" ≈ "ages 2+"). RRF combines their ranks without score calibration. Fusion beats both single retrievers (P@5 0.444 vs 0.370 / 0.428); down-weighting BM25 to 0.5 helps slightly (0.457), down-weighting dense hurts (0.427), so dense is the stronger signal but BM25 still adds exact-term matches. On the human-judged pool the gain of plain fusion is visible in nDCG@10 (0.579 vs 0.423 / 0.536) but not in judged P@5 (0.599 vs 0.614 / 0.619), so we treat fusion mainly as a better candidate generator for re-ranking and filtering, which is where the large gains come from. *Example (S075, "a microfiber bed sheet set under $50"):* BM25 ranks a cooling fitted sheet second (keyword overlap on "sheet"), dense ranks an oversize quilt third; RRF keeps the items both agree on and all of its top-3 satisfy the need (P@5 +0.6 over the better single retriever).
 
 **(2) Re-ranking.** A multilingual cross-encoder (`BAAI/bge-reranker-v2-m3`) re-scores the top-20 fused products (title, categories and features, 128 words) against the query, which fixes cases where products match many query words but violate the main intent. Re-ranking gives the largest single gain without filters (P@5 0.444 → 0.504, MRR 0.614 → 0.686) at a cost of ~0.67 s per query. *Example (S026, "a wristwatch for women under $220"):* RRF's top-3 are a men's watch, a $125 women's automatic and a Russian military watch (0/3 relevant); after re-ranking the top-3 are three women's watches within budget (3/3). *Example (S123, "balloons for a 5-year-old under $25"):* RRF ranks character "5th birthday" bouquets that fail the hidden need's constraints (0/3); the cross-encoder promotes party-balloon packs that satisfy it (3/3).
 
@@ -184,23 +185,36 @@ Scenario-based design (`eval/scenarios/`, `eval/annotation/`). Each hidden need 
 | Decision records | 2 dialogue snapshots per scenario (360): *should the agent ask or recommend?* and, if ask, *which attribute?* |
 | Relevance records | 6 pooled candidates per scenario (1,080) from 7 retrieval configurations (BM25, dense, RRF, RRF + re-ranking, + filters, Chinese dense, Chinese RRF + re-ranking), judged *satisfies the need / does not* |
 | Size | 180 scenarios (60 per domain, 72 product types; 81 vague, 63 partial, 36 complete openings) → 360 decision + 1,080 relevance = **1,440 records** |
-| Annotators | 3 sheets prepared (`sheet_A/B/C.xlsx`); annotation in progress (TBD names) |
-| Agreement | Percent agreement TBD, Cohen's κ TBD, Fleiss' κ TBD (computed by `compute_iaa.py` once the sheets are returned) |
+| Annotators | 3 group members, independently (`sheet_A/B/C.xlsx`); gold label = majority vote (no unresolved items) |
+| Agreement (all 1,440 binary records) | **84.5 %** mean pairwise agreement, mean Cohen's κ 0.694, Fleiss' κ 0.688 |
+
+Agreement per label type (`eval/annotation/iaa_report.json`):
+
+| Label | Records | Mean pairwise agreement | Mean Cohen's κ | Fleiss' κ |
+|---|---|---|---|---|
+| Ask or recommend | 360 | 98.9 % | 0.972 | 0.972 |
+| Attribute to ask about (where all three chose *ask*) | 258 | 81.1 % | 0.748 | 0.742 |
+| Product satisfies the need | 1,080 | 79.7 % | 0.602 | 0.593 |
+| All binary records | 1,440 | **84.5 %** | 0.694 | 0.688 |
+
+Annotators A and B agree on 96.9 % of the relevance labels (κ = 0.94); annotator C agrees with each of them on about 71 %. Almost all of the difference is one pattern: 243 products that A and B judged relevant were marked "wrong product type" by C, mostly items of exactly the requested type (e.g. a throw blanket for "a throw blanket under $140"). C also tended to ask about the audience or age before the product type, against the priority in the guidelines. Majority voting removes these cases from the gold labels (A and B always form the majority), but they lower the agreement on relevance to just below 80 %.
 
 ### 4.4 Task metrics
 
 | Metric | Value |
 |---|---|
-| Ask/recommend decision — precision / recall / F1 (entropy criterion, 360 snapshots)* | 0.824 / 1.000 / 0.904 |
-| Ask/recommend decision — LLM judgement / LLM judgement + thinking* | 0.985 / 0.756 / 0.855; 0.991 / 0.860 / 0.921 |
-| Clarifying-attribute accuracy (entropy / LLM / rule)* | 0.574 / 0.554 / 0.605 |
+| Ask/recommend decision — precision / recall / F1 (entropy criterion, 360 snapshots)* | 0.827 / 1.000 / 0.905 |
+| Ask/recommend decision — LLM judgement / LLM judgement + thinking* | 0.980 / 0.752 / 0.851; 0.978 / 0.857 / 0.913 |
+| Ask/recommend decision — rule (required slot missing)* | 1.000 / 1.000 / 1.000 |
+| Clarifying-attribute accuracy (entropy selection with entropy / LLM / LLM + thinking / rule decision)* | 0.566 / 0.552 / 0.566 / 0.605 |
 | Recommendation precision (share of recommended products satisfying all hard constraints, programmatic) | 0.645 |
-| Recommendation recall / F1 vs. human-judged relevant products | pending annotation |
+| Recommendation precision vs. human labels (final top-3 of the full agent; 41 % of them are in the judged pool) | 0.931 (B0 0.857, B1 0.830, B4 0.934) |
+| Scenarios whose judged recommendations include a human-relevant product | 0.979 (B0 0.925) |
 | Success@3 within 5 turns (user simulator, 180 scenarios) | 0.883 (first recommendation already correct: 0.861) |
 | Average turns per dialogue / questions asked | 3.31 / 2.09 |
 | Hard-constraint violation rate (per recommended product) | 0.355 |
 
-\* **Provisional.** Until the human gold labels exist, `evaluate_decisions.py` scores against the rule-derived expected action (ask iff a required slot is missing). The rule-based variant therefore scores 1.0 on detection by construction and is not a fair comparison point; the numbers will be recomputed on the human labels.
+\* Against the human gold labels (majority of three annotators). The annotators followed the guideline "ask if a required attribute is missing", so the human decisions coincide with the rule-based decision on all 360 snapshots and the rule variant scores 1.0; the informative comparison is between the learned criteria. The entropy criterion never misses a needed question but asks unnecessarily in 54 of 102 "recommend" snapshots; LLM judgement rarely over-asks but misses a quarter of the needed questions, and thinking mode recovers part of them. Clarifying-attribute accuracy is low for all variants (0.55–0.61) because they ask about the attribute that best splits the candidates, while the annotators followed the fixed priority "product type → audience/age → budget". A recall/F1 for recommendations is not reported: with pooled judgments the set of all relevant products is unknown, and Success@3 plays that role.
 
 ### 4.5 Answer-level RAG metrics
 
@@ -211,9 +225,9 @@ Scenario-based design (`eval/scenarios/`, `eval/annotation/`). Each hidden need 
 | Context precision | 0.964 |
 | Citation precision (programmatic: every product ID and evidence ID in the answer must be among the retrieved evidence; invalid ones are dropped by the validator) | 1.000 after validation |
 | Self-check: share of numeric claims supported by metadata | 0.951 |
-| LLM-judge vs. human agreement | pending annotation |
+| LLM-judge vs. human agreement (context relevance on the 1,080 annotated pairs) | 92.3 % agreement, Cohen's κ 0.846 (precision 0.948, recall 0.907) |
 
-Judge: `deepseek-flash`, RAGAS-style prompts (`rag_judge.py`) on the final answer of each of the 180 dialogues. Answer relevance is moderate for all systems (0.55–0.60) because the judge penalises the explanatory sentences around the product list; it should be read comparatively.
+Judge: `deepseek-flash`, RAGAS-style prompts (`rag_judge.py`) on the final answer of each of the 180 dialogues. Answer relevance is moderate for all systems (0.55–0.60) because the judge penalises the explanatory sentences around the product list; it should be read comparatively. The judge was calibrated by applying its context-relevance prompt to the 1,080 human-labelled (need, product) pairs (`rag_judge.py --calibrate`): it agrees with the human majority more closely (κ 0.846) than annotator C agrees with A and B, so we use it for context precision.
 
 ### 4.6 Performance
 
@@ -255,13 +269,13 @@ User simulator: DeepSeek plays the user with a hidden need. It only knows the at
 |---|---|---|---|---|---|---|---|---|---|
 | B0: single-turn RAG (history concatenated) | 0.789 | 0.433 | 2.32 | 0 | 0.723 | 0 | 0.993 | 2.3 | $0.73 |
 | B1: + I2 rewriting | 0.856 | 0.489 | 2.02 | 0 | 0.688 | 0 | 0.994 | 4.0 | $0.91 |
-| B2: + clarification (LLM judgement) | 0.861 | 0.767 | 2.71 | 1.22 | 0.544 | 0.855 | – | 5.4 | $0.80 |
-| B3: + I1 entropy decision & question selection | 0.833 | 0.811 | 3.40 | 2.08 | 0.404 | 0.904 | – | 4.7 | $0.76 |
-| B4: + I2 metadata filters | 0.889 | 0.872 | 3.29 | 2.09 | 0.354 | 0.904 | 0.994 | 4.5 | $0.73 |
-| Full: + I3 evidence check & self-check† | 0.883 | 0.861 | 3.31 | 2.09 | 0.355 | 0.904 | **0.999** | 6.9 | $1.32 |
+| B2: + clarification (LLM judgement) | 0.861 | 0.767 | 2.71 | 1.22 | 0.544 | 0.851 | – | 5.4 | $0.80 |
+| B3: + I1 entropy decision & question selection | 0.833 | 0.811 | 3.40 | 2.08 | 0.404 | 0.905 | – | 4.7 | $0.76 |
+| B4: + I2 metadata filters | 0.889 | 0.872 | 3.29 | 2.09 | 0.354 | 0.905 | 0.994 | 4.5 | $0.73 |
+| Full: + I3 evidence check & self-check† | 0.883 | 0.861 | 3.31 | 2.09 | 0.355 | 0.905 | **0.999** | 6.9 | $1.32 |
 | Full − I1 (no clarification) | 0.594 | 0.489 | 1.38 | 0 | 0.565 | 0 | – | 5.2 | $1.12 |
-| Full − I2 (no rewriting / filters) | 0.861 | 0.844 | 3.33 | 2.08 | 0.352 | 0.904 | – | 7.0 | $1.21 |
-| Full − I3 | **0.894** | **0.872** | 3.29 | 2.08 | 0.365 | 0.904 | 0.994 | 4.5 | $0.73 |
+| Full − I2 (no rewriting / filters) | 0.861 | 0.844 | 3.33 | 2.08 | 0.352 | 0.905 | – | 7.0 | $1.21 |
+| Full − I3 | **0.894** | **0.872** | 3.29 | 2.08 | 0.365 | 0.905 | 0.994 | 4.5 | $0.73 |
 Sub-ablations of I1 and options (full agent with one component changed):
 
 | Variant | Success@3 | First-rec. success | Questions | Useful-question rate | Over-asking on complete openings | Constraint violations | LLM calls |
@@ -274,7 +288,7 @@ Sub-ablations of I1 and options (full agent with one component changed):
 | Full + DeepSeek thinking mode | **0.900** | **0.872** | 2.11 | 0.815 | 0.500 | **0.316** | 6.8 ($1.75 / 1k) |
 | Full + I4 aspect explanations | 0.878 | 0.839 | 2.09 | 0.814 | 0.500 | 0.363 | 7.1 |
 
-\* Decision F1 on the 360 annotated snapshots, provisional (rule-derived gold, see Section 4.4); configurations that never ask have recall 0. Faithfulness is the LLM-judge score, run for the main configurations only. Cost per 1,000 dialogues is computed as in Section 4.6 (off-peak price, 40 % cache hits).
+\* Decision F1 on the 360 human-annotated snapshots (Section 4.4); configurations that never ask have recall 0. Faithfulness is the LLM-judge score, run for the main configurations only. Cost per 1,000 dialogues is computed as in Section 4.6 (off-peak price, 40 % cache hits).
 † Corrected run. A first run of the full agent had a self-check bug: it also rewrote the user's budget when the budget was quoted in a reason (e.g. "within your $75 budget" → "$21.80"), which lowered faithfulness to 0.977 (supported numeric claims 0.915, success 0.889). Amounts next to budget words or equal to the budget are no longer treated as price claims; after the fix faithfulness rises to 0.999 and supported numeric claims to 0.951.
 
 **Findings.** (1) Clarification is the main driver: removing it (Full − I1) drops success from 0.883 to 0.594, and from B1 to B2 the first-recommendation success rises from 0.489 to 0.767 because the agent stops recommending blindly. (2) Constraint-to-filter mapping mostly reduces violations (B3 → B4: 0.404 → 0.354) and raises success (0.833 → 0.889). (3) The entropy criterion asks whenever candidates are diverse, which gives perfect recall of needed questions but over-asks on half of the fully specified openings (e.g. S006, "a ring for women under $25" → "statement, stacking or bands?"); the rule-based decision asks fewer, more useful questions (0.964) at the same success. Entropy-based *selection* is no better than asking a random unfilled slot (success 0.883 vs 0.883; first-rec. success 0.861 vs 0.844), an honest negative result: with only 3–5 slots, any required slot is informative. (4) I3 does not raise simulator success (Full − I3: 0.894 vs 0.883, within noise of one run), but it gives the highest faithfulness (0.999 vs 0.994), makes the agent refuse instead of inventing a match (61 refusals without clarification), and verifies 95.1 % of numeric claims; its cost is ~2.4 extra LLM calls (+$0.6 per 1,000 dialogues). (5) Thinking mode gives the lowest violation rate (0.316) at +33 % cost.
@@ -307,8 +321,10 @@ Sub-ablations of I1 and options (full agent with one component changed):
 ## Limitations
 
 - The knowledge base contains metadata but no reviews, so subjective aspects (comfort, fit) can only be supported when stated in the listing.
-- The same LLM family acts as agent, user simulator and judge; we calibrate the LLM judge against human labels (Section 4.5).
+- The same LLM family acts as agent, user simulator and judge; we calibrate the LLM judge against human labels (Section 4.5; κ = 0.846).
 - Evaluation scenarios were drafted with LLM assistance and then reviewed and labelled independently by humans; agreement is computed on the human labels only.
+- Relevance agreement (79.7 %) is just below the 80 % target because one annotator systematically deviated from the guideline on product type; the gold labels are majority votes, and agreement over all 1,440 records is 84.5 %.
+- Human relevance labels cover only the pooled products (6 per scenario), so human retrieval metrics are computed on judged products and favour the configurations that built the pool.
 
 ## Team contributions
 

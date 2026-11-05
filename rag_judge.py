@@ -27,6 +27,11 @@ Input: dialogue records from run_dialogues.py (eval/q5_runs/<config>.jsonl). Usi
 different (or stronger) model than the generator reduces self-preference
 bias.
 
+Judge calibration (--calibrate): the context-relevance prompt is applied to the
+1,080 human-labelled (need, product) pairs of eval/annotation/pool.jsonl and
+compared with the human gold labels (gold_relevance.csv): agreement and
+Cohen's kappa, also for the programmatic labels. Output: judge_calibration.json.
+
 Usage:
     python rag_judge.py --configs B0 full --workers 6
 """
@@ -229,13 +234,64 @@ def dialogue_results(path, scenarios):
     return out
 
 
+def calibrate(workers=6):
+    """LLM 评审 vs 人工金标准：在 pooled 候选上比较上下文相关性判断。"""
+    import csv
+    from compute_iaa import cohen_kappa
+    from generator import build_evidence_passage
+    ann = EVAL_DIR / "annotation"
+    gold = {r["record_id"]: int(float(r["relevant"]))
+            for r in csv.DictReader(open(ann / "gold_relevance.csv", encoding="utf-8-sig"))}
+    pool = [json.loads(l) for l in open(ann / "pool.jsonl", encoding="utf-8")]
+    by_sc = {}
+    for r in pool:
+        by_sc.setdefault(r["scenario_id"], []).append(r)
+
+    def judge_scenario(rows):
+        evidence = "\n\n".join(f"E{i} (ASIN {r['parent_asin']}): {build_evidence_passage(r['parent_asin'], r['passage'])}"
+                                 for i, r in enumerate(rows, start=1))
+        try:
+            data, _ = ask(CONTEXT_RELEVANCE_PROMPT.format(query=rows[0]["need_en"], evidence=evidence))
+        except Exception as error:
+            return {r["record_id"]: None for r in rows}
+        verdict = {v.get("evidence_id"): int(v.get("relevant", 0) in (1, "1", True))
+                   for v in data.get("verdicts", []) if isinstance(v, dict)}
+        return {r["record_id"]: verdict.get(f"E{i}") for i, r in enumerate(rows, start=1)}
+
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        judged = {}
+        for part in executor.map(judge_scenario, by_sc.values()):
+            judged.update(part)
+    ids = [r["record_id"] for r in pool if judged.get(r["record_id"]) is not None and r["record_id"] in gold]
+    prog = {r["record_id"]: int(r["programmatic_relevant"]) for r in pool}
+
+    def compare(pred):
+        a, b = [pred[i] for i in ids], [gold[i] for i in ids]
+        tp = sum(x and y for x, y in zip(a, b))
+        return {"items": len(ids), "agreement": sum(x == y for x, y in zip(a, b)) / len(ids),
+                "cohen_kappa": cohen_kappa(a, b),
+                "precision": tp / max(1, sum(a)), "recall": tp / max(1, sum(b)),
+                "positive_rate": sum(a) / len(ids)}
+    out = {"judge_model": judge_model(), "gold_positive_rate": sum(gold[i] for i in ids) / len(ids),
+           "llm_judge_vs_human": compare(judged), "programmatic_vs_human": compare(prog)}
+    (EVAL_DIR / "q5_runs" / "judge_calibration.json").write_text(json.dumps(out, indent=2))
+    with open(EVAL_DIR / "q5_runs" / "judge_calibration.jsonl", "w", encoding="utf-8") as f:
+        for i in ids:
+            f.write(json.dumps({"record_id": i, "judge": judged[i], "human": gold[i], "programmatic": prog[i]}) + "\n")
+    print(json.dumps(out, indent=2))
+
+
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--calibrate", action="store_true", help="LLM 评审 vs 人工金标准（pooled 相关性）")
     parser.add_argument("--configs", nargs="+", default=["full"])
     parser.add_argument("--runs-dir", default=str(EVAL_DIR / "q5_runs"))
     parser.add_argument("--workers", type=int, default=6)
     parser.add_argument("--limit", type=int)
     args = parser.parse_args()
+    if args.calibrate:
+        calibrate(args.workers)
+        return
 
     runs = Path(args.runs_dir)
     scenarios = {json.loads(l)["scenario_id"]: json.loads(l)
