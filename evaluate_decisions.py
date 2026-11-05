@@ -62,25 +62,34 @@ def main():
     parser.add_argument("--configs", nargs="+", default=["clarify-rule", "clarify-llm", "clarify-llm+thinking", "full"])
     parser.add_argument("--workers", type=int, default=6)
     parser.add_argument("--limit", type=int)
+    parser.add_argument("--rescore", action="store_true", help="不调用模型，用已有的 preds_<config>.jsonl 重新计算指标")
     args = parser.parse_args()
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
     records = [json.loads(l) for l in open(ANN_DIR / "decisions.jsonl", encoding="utf-8")]
+    import dedup                                          # 只在去重后的记录上评测
+    keep = set(dedup.unique_decision_ids())
+    records = [r for r in records if r["record_id"] in keep]
     records = records[:args.limit] if args.limit else records
     gold = load_gold()
     provisional = gold is None
     if provisional:
         gold = {r["record_id"]: (int(r["expected_action"] == "ask"),
                                  r["missing_required"][0] if r["missing_required"] else None) for r in records}
-    import hybrid_retriever as hr
-    hr.search("warm up", top_k=3, rerank=True)
-    import reranker
-    reranker.warm_up()
+    if not args.rescore:
+        import hybrid_retriever as hr
+        hr.search("warm up", top_k=3, rerank=True)
+        import reranker
+        reranker.warm_up()
 
     summary = {}
     for name in args.configs:
-        with ThreadPoolExecutor(max_workers=args.workers) as ex:
-            preds = list(ex.map(lambda r: decide_one(name, r), records))
+        if args.rescore:
+            preds = [json.loads(l) for l in open(OUT_DIR / f"preds_{name}.jsonl", encoding="utf-8")]
+            preds = [p for p in preds if p["record_id"] in keep]
+        else:
+            with ThreadPoolExecutor(max_workers=args.workers) as ex:
+                preds = list(ex.map(lambda r: decide_one(name, r), records))
         tp = fp = fn = tn = slot_ok = slot_n = 0
         for p in preds:
             g_ask, g_slot = gold.get(p["record_id"], (None, None))
@@ -105,9 +114,10 @@ def main():
             "llm_calls_per_decision": sum(p["calls"] for p in preds) / len(preds),
             "tokens_per_decision": sum(p["tokens"] for p in preds) / len(preds),
         }
-        with open(OUT_DIR / f"preds_{name}.jsonl", "w", encoding="utf-8") as f:
-            for p in preds:
-                f.write(json.dumps(p) + "\n")
+        if not args.rescore:
+            with open(OUT_DIR / f"preds_{name}.jsonl", "w", encoding="utf-8") as f:
+                for p in preds:
+                    f.write(json.dumps(p) + "\n")
         s = summary[name]
         print(f"[{name}] P {s['precision']:.3f} R {s['recall']:.3f} F1 {s['f1']:.3f} "
               f"acc {s['accuracy']:.3f} slot-acc {s['ask_slot_accuracy']} ({s['gold']})", flush=True)

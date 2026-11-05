@@ -47,6 +47,9 @@ def dialogue_cost(u, tier=PRICE_TIER):
 def load_scenarios(path, limit=None, ids=None):
     with open(path, encoding="utf-8") as f:
         scs = [json.loads(l) for l in f if l.strip()]
+    import dedup                                          # 隐藏需求重复的场景只保留一个
+    keep = set(dedup.unique_scenario_ids())
+    scs = [s for s in scs if s["scenario_id"] in keep]
     if ids:
         scs = [s for s in scs if s["scenario_id"] in ids]
     return scs[:limit] if limit else scs
@@ -122,7 +125,10 @@ def main():
         for name in list(summary):
             path = OUT_DIR / f"{name}{args.tag}.jsonl"
             if path.exists():
+                import dedup
+                keep = set(dedup.unique_scenario_ids())
                 records = [json.loads(l) for l in open(path, encoding="utf-8") if l.strip()]
+                records = [r for r in records if r["scenario_id"] in keep]
                 wall = summary[name].get("wall_minutes")
                 summary[name] = summarize(records)
                 summary[name]["wall_minutes"] = wall

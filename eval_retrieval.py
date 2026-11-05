@@ -111,10 +111,14 @@ def condensed_precision(k=5):
     judged = {}
     for r in load_jsonl(ANN_DIR / "pool.jsonl"):
         judged.setdefault(r["scenario_id"], {})[r["parent_asin"]] = gold.get(r["record_id"], 0)
+    import dedup
+    keep = set(dedup.unique_scenario_ids())
     out = {}
     for path in sorted(OUT_DIR.glob("runs_*.jsonl")):
         n = rel = 0
         for row in load_jsonl(path):
+            if row["scenario_id"] not in keep:
+                continue
             h = judged.get(row["scenario_id"], {})
             top = [a for a in row["ranked"] if a in h][:k]
             n += len(top)
@@ -193,22 +197,52 @@ def main():
     parser.add_argument("--tag", default="chunk")
     parser.add_argument("--no-timeline", action="store_true")
     parser.add_argument("--condensed-only", action="store_true", help="只根据已有运行结果计算人工 qrels 的压缩列表 P@5")
+    parser.add_argument("--rescore", action="store_true",
+                        help="不重新检索：用已有 runs_<tag>_<config>.jsonl 在去重后的场景上重新计算指标（延迟沿用原汇总）")
     args = parser.parse_args()
     if args.condensed_only:
         print(json.dumps(condensed_precision(), indent=1, ensure_ascii=False))
         return
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    scenarios = load_jsonl(SCENARIOS)[:args.limit] if args.limit else load_jsonl(SCENARIOS)
+    import dedup                                          # 隐藏需求重复的场景只保留一个（查询也相同）
+    keep = set(dedup.unique_scenario_ids())
+    scenarios = [s for s in load_jsonl(SCENARIOS) if s["scenario_id"] in keep]
+    scenarios = scenarios[:args.limit] if args.limit else scenarios
     qrels_prog = programmatic_qrels(scenarios)
     human = human_qrels()
-    translations = translate_queries(scenarios) if any(CONFIGS[c][0] == "zh2en" for c in args.configs) else {}
-    hr.search("warm up", top_k=3, rerank=True)
-    import reranker
-    reranker.warm_up()
-
     path = OUT_DIR / "summary.json"
     summary = json.loads(path.read_text()) if path.exists() else {}
+    if args.rescore:
+        for name in args.configs:
+            key = f"{args.tag}:{name}"
+            run_path = OUT_DIR / f"runs_{args.tag}_{name.replace('/', '_')}.jsonl"
+            if key not in summary or not run_path.exists():
+                continue
+            rows = [r for r in load_jsonl(run_path) if r["scenario_id"] in keep]
+            for r in rows:
+                r["prog"] = metrics(r["ranked"], qrels_prog[r["scenario_id"]])
+                if human:
+                    judged, relevant = human
+                    r["human"] = metrics(r["ranked"], relevant.get(r["scenario_id"], set()))
+                    r["judged@5"] = sum(a in judged.get(r["scenario_id"], set()) for a in r["ranked"][:5]) / 5
+            s = {"queries": len(rows), "latency_ms_mean": summary[key]["latency_ms_mean"],
+                 "latency_ms_p50": summary[key].get("latency_ms_p50")}
+            for m in ("prog", "human"):
+                if rows and m in rows[0]:
+                    vals = list(zip(*[r[m] for r in rows]))
+                    s[m] = {k: round(statistics.mean(v), 4) for k, v in zip(("P@5", "R@10", "MRR@10", "nDCG@10"), vals)}
+            if human:
+                s["judged@5"] = round(statistics.mean(r["judged@5"] for r in rows), 3)
+            summary[key] = s
+        path.write_text(json.dumps(summary, indent=2, ensure_ascii=False))
+        args.configs = []
+    translations = translate_queries(scenarios) if any(CONFIGS[c][0] == "zh2en" for c in args.configs) else {}
+    if args.configs or (not args.no_timeline and args.tag == "chunk"):
+        hr.search("warm up", top_k=3, rerank=True)
+        import reranker
+        reranker.warm_up()
+
     for name in args.configs:
         t0 = time.time()
         s, rows = run_config(name, scenarios, qrels_prog, human, translations)

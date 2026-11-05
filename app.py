@@ -69,6 +69,14 @@ def respond(message, chat, history, config_name):
     return chat, history, "", state_md, evidence_md, perf_md
 
 
+def make_chatbot():
+    """Gradio 4/5 需要 type="messages"；Gradio 6 起默认就是 messages 格式，且不再接受 type 参数。"""
+    try:
+        return gr.Chatbot(type="messages", height=520, label="Assistant")
+    except TypeError:
+        return gr.Chatbot(height=520, label="Assistant")
+
+
 def reset():
     return [], [], "", "", "", ""
 
@@ -80,7 +88,7 @@ with gr.Blocks(title="Conversational RAG Shopping Assistant") as demo:
     history = gr.State([])
     with gr.Row():
         with gr.Column(scale=3):
-            chat = gr.Chatbot(type="messages", height=520, label="Assistant")
+            chat = make_chatbot()
             box = gr.Textbox(placeholder="Describe what you are looking for (English or 中文)…",
                              label="Your message", lines=2)
             with gr.Row():

@@ -1,0 +1,46 @@
+digraph G {
+  graph [rankdir=TB, fontname="Inter", fontsize=13, nodesep=0.45, ranksep=0.55, bgcolor="white", pad=0.3, newrank=true];
+  node  [shape=box, style="rounded,filled", fontname="Inter", fontsize=12, color="#c3c2b7", fillcolor="#f7f7f5", fontcolor="#0b0b0b", penwidth=1.2, margin="0.18,0.10", width=2.4];
+  edge  [color="#52514e", arrowsize=0.7, penwidth=1.1, fontname="Inter", fontsize=10, fontcolor="#52514e"];
+
+  subgraph cluster_offline {
+    label="Offline knowledge base (Q1)"; fontcolor="#52514e"; style="rounded,dashed"; color="#c3c2b7";
+    amazon [label="Amazon Reviews 2023 metadata\n3 categories · reservoir sample\n15,000 products"];
+    clean  [label="Clean · de-duplicate\nfield-level chunks\n48,107 chunks"];
+    idx    [label="BM25 sparse matrix\nbge-m3 vectors in FAISS\nstructured metadata"];
+  }
+  user [label="User message\n(English or Chinese)", fillcolor="#ffffff", color="#52514e"];
+
+  subgraph cluster_turn {
+    label="Per dialogue turn (Q2–Q5)"; fontcolor="#52514e"; style="rounded"; color="#c3c2b7";
+    state  [label="State tracking +\nquery rewriting (I2)\nslots + English query"];
+    filt   [label="Constraints → filters (I2)\nprice · audience · age\nmaterial · date"];
+    retr   [label="Hybrid retrieval\nBM25 + dense → MaxP\n→ RRF fusion", fillcolor="#e8f0fb", color="#2a78d6"];
+    rerank [label="Cross-encoder\nre-ranking\nbge-reranker-v2-m3", fillcolor="#e8f0fb", color="#2a78d6"];
+    decide [label="Decision (I1)\nask · recommend · none\n(entropy over candidates)", fillcolor="#fdeee6", color="#eb6834"];
+    check  [label="Evidence check (I3)\nhard constraints + LLM match\nrelax filters & retry"];
+    gen    [label="Grounded generation\nJSON with product\nand evidence IDs"];
+    self   [label="Claim self-check (I3)\nnumbers vs metadata\nunsupported claims removed"];
+  }
+  ask [label="Clarifying question\n(most informative attribute)\n→ user answers next turn", fillcolor="#fdeee6", color="#eb6834"];
+  ans [label="Answer: top-3 products\nwith reasons and citations", fillcolor="#ffffff", color="#52514e"];
+
+  {rank=same; amazon; clean; idx;}
+  {rank=same; state; filt; retr; rerank;}
+  amazon -> user [style=invis];
+  {rank=same; self; gen; check; decide;}
+  {rank=same; ans; ask;}
+  self -> gen -> check -> decide [style=invis];
+  ans -> ask [style=invis];
+
+  amazon -> clean -> idx;
+  idx -> retr [style=dashed, label="indexes"];
+  user -> state;
+  state -> filt -> retr -> rerank;
+  rerank -> decide;
+  decide -> check [label="recommend", constraint=false];
+  check -> gen [constraint=false]; gen -> self [constraint=false];
+  self -> ans;
+  decide -> ask [label="ask"];
+  ask -> user [style=dashed, constraint=false];
+}

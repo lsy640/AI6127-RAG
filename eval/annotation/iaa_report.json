@@ -6,9 +6,9 @@
   ],
   "review": {},
   "records": {
-    "decisions": 360,
-    "relevance": 1080,
-    "total": 1440
+    "decisions": 299,
+    "relevance": 1014,
+    "total": 1313
   },
   "labelled_per_annotator": {
     "A": {
@@ -27,99 +27,100 @@
   "should_ask": {
     "pairwise": {
       "A-B": {
-        "items": 360,
+        "items": 299,
         "percent_agreement": 1.0,
         "cohen_kappa": 1.0
       },
       "A-C": {
-        "items": 360,
-        "percent_agreement": 0.9833333333333333,
-        "cohen_kappa": 0.9582172701949859
+        "items": 299,
+        "percent_agreement": 0.979933110367893,
+        "cohen_kappa": 0.9529207998740357
       },
       "B-C": {
-        "items": 360,
-        "percent_agreement": 0.9833333333333333,
-        "cohen_kappa": 0.9582172701949859
+        "items": 299,
+        "percent_agreement": 0.979933110367893,
+        "cohen_kappa": 0.9529207998740357
       }
     },
-    "mean_percent_agreement": 0.9888888888888889,
-    "mean_cohen_kappa": 0.9721448467966572,
-    "items_labelled_by_all": 360,
-    "fleiss_kappa": 0.9723076923076924,
+    "mean_percent_agreement": 0.9866220735785953,
+    "mean_cohen_kappa": 0.9686138665826904,
+    "items_labelled_by_all": 299,
+    "fleiss_kappa": 0.9687858857918363,
     "meets_80_percent": true
   },
   "ask_about": {
     "pairwise": {
       "A-B": {
-        "items": 258,
-        "percent_agreement": 0.9922480620155039,
-        "cohen_kappa": 0.9892526868282929
+        "items": 204,
+        "percent_agreement": 0.9950980392156863,
+        "cohen_kappa": 0.9931635388739947
       },
       "A-C": {
-        "items": 258,
-        "percent_agreement": 0.7170542635658915,
-        "cohen_kappa": 0.622980682614353
+        "items": 204,
+        "percent_agreement": 0.7990196078431373,
+        "cohen_kappa": 0.719761442069289
       },
       "B-C": {
-        "items": 258,
-        "percent_agreement": 0.7248062015503876,
-        "cohen_kappa": 0.6324122569381735
+        "items": 204,
+        "percent_agreement": 0.803921568627451,
+        "cohen_kappa": 0.7262204328132864
       }
     },
-    "mean_percent_agreement": 0.8113695090439276,
-    "mean_cohen_kappa": 0.7482152087936065,
-    "items_labelled_by_all": 258,
-    "fleiss_kappa": 0.7415007068447286,
+    "mean_percent_agreement": 0.8660130718954249,
+    "mean_cohen_kappa": 0.81304847125219,
+    "items_labelled_by_all": 204,
+    "fleiss_kappa": 0.8118123523455955,
     "meets_80_percent": true
   },
   "relevance": {
     "pairwise": {
       "A-B": {
-        "items": 1080,
-        "percent_agreement": 0.9694444444444444,
-        "cohen_kappa": 0.9385178029257522
+        "items": 1014,
+        "percent_agreement": 0.9684418145956607,
+        "cohen_kappa": 0.9363724782731464
       },
       "A-C": {
-        "items": 1080,
-        "percent_agreement": 0.937037037037037,
-        "cohen_kappa": 0.871825750039269
+        "items": 1014,
+        "percent_agreement": 0.9408284023668639,
+        "cohen_kappa": 0.8791888736209185
       },
       "B-C": {
-        "items": 1080,
-        "percent_agreement": 0.9342592592592592,
-        "cohen_kappa": 0.8671628139032097
+        "items": 1014,
+        "percent_agreement": 0.9388560157790927,
+        "cohen_kappa": 0.8762119290839352
       }
     },
-    "mean_percent_agreement": 0.9469135802469135,
-    "mean_cohen_kappa": 0.8925021222894104,
-    "items_labelled_by_all": 1080,
-    "fleiss_kappa": 0.8925000000000035,
+    "mean_percent_agreement": 0.9493754109138725,
+    "mean_cohen_kappa": 0.897257760326,
+    "items_labelled_by_all": 1014,
+    "fleiss_kappa": 0.8972636266026687,
     "meets_80_percent": true
   },
   "all_binary_records": {
     "pairwise": {
       "A-B": {
-        "items": 1440,
-        "percent_agreement": 0.9770833333333333,
-        "cohen_kappa": 0.9528356194295015
+        "items": 1313,
+        "percent_agreement": 0.9756283320639756,
+        "cohen_kappa": 0.9500800790810627
       },
       "A-C": {
-        "items": 1440,
-        "percent_agreement": 0.9486111111111111,
-        "cohen_kappa": 0.8923329675725812
+        "items": 1313,
+        "percent_agreement": 0.9497334348819497,
+        "cohen_kappa": 0.8953466465712132
       },
       "B-C": {
-        "items": 1440,
-        "percent_agreement": 0.9465277777777777,
-        "cohen_kappa": 0.8888822079249593
+        "items": 1313,
+        "percent_agreement": 0.9482102056359482,
+        "cohen_kappa": 0.8931017307931763
       }
     },
-    "mean_percent_agreement": 0.9574074074074074,
-    "mean_cohen_kappa": 0.9113502649756806,
-    "items_labelled_by_all": 1440,
-    "fleiss_kappa": 0.9114675220529228,
+    "mean_percent_agreement": 0.9578573241939577,
+    "mean_cohen_kappa": 0.9128428188151507,
+    "items_labelled_by_all": 1313,
+    "fleiss_kappa": 0.9129253298688494,
     "meets_80_percent": true
   },
+  "deduplicated": true,
   "gold": {
     "decisions": 360,
     "relevance": 1080,

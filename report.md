@@ -5,8 +5,6 @@
 **Knowledge base, queries, results and evaluation data (zip):** TBD (Google Drive / OneDrive link)  
 **Source code and README (zip):** TBD (link) — repository: https://github.com/lsy640/AI6127-RAG
 
-> Status legend: values marked **TBD** will be filled in after the corresponding experiment is run.
-
 ---
 
 ## 0. System overview
@@ -15,21 +13,16 @@ We build a **multi-turn, retrieval-augmented shopping assistant** over Amazon pr
 
 Per-turn pipeline:
 
-1. **Dialogue state tracking** — the LLM updates a structured need `{category, gender, use_case, budget_max, size, must_have, exclude, …}` from the conversation.
+1. **Dialogue state tracking** — the LLM updates a structured need `{product_type, audience, age, price_max, material, must_have, exclude}` from the conversation.
 2. **Query rewriting** — history + current message → one self-contained English search query (also handles Chinese input).
-3. **Retrieval** — field-level chunks; BM25 + bge-m3 dense retrieval → parent-document merge → RRF fusion → metadata filters (price, rating, category, date) → cross-encoder re-ranking.
+3. **Retrieval** — field-level chunks; BM25 + bge-m3 dense retrieval → parent-document merge → RRF fusion → metadata filters (price, audience, age, material, date) → cross-encoder re-ranking.
 4. **Decision** — *recommend*, *ask* (choose the attribute that best splits the current candidates), or *report that nothing matches*.
-5. **Grounded generation + self-check** — JSON answer with product IDs and evidence IDs; unsupported claims are flagged and removed.
+5. **Evidence check** — verify that candidates satisfy the hard constraints; relax filters and retrieve again if needed.
+6. **Grounded generation + self-check** — JSON answer with product IDs and evidence IDs; unsupported claims are flagged and removed.
 
-```
-User ──► State tracker ──► Query rewriter ──► Hybrid retriever ──► Re-ranker
-              ▲                                   (BM25 + bge-m3,      │
-              │                                    filters, RRF)       ▼
-              └──────── Clarifying question ◄── Decision (ask / recommend / none)
-                                                        │
-                                                        ▼
-                                   Grounded generation ──► Claim self-check ──► Answer
-```
+![System architecture](eval/figures/fig_architecture.png)
+
+*Figure 1. System architecture. Blue: retrieval (Q2/Q3); orange: clarification (I1); I2/I3 mark the other downstream innovations (Section 5).*
 
 ---
 
@@ -87,7 +80,9 @@ Sample interactions:
 
 Gradio chat interface (`app.py`): the user types a message; the assistant either asks a clarifying question or returns recommendations (title, price, rating, reason, evidence IDs). Side panels show the tracked need (dialogue state), retrieved evidence with the matched field, and per-stage latency.
 
-*Screenshot: TBD*
+![Gradio user interface](eval/figures/fig_ui.png)
+
+*Figure 2. The Gradio interface after a four-turn dialogue ("I'm looking for some shoes." → the agent asks for the type, the audience and the budget → three women's running shoes under $80, each with price, rating, reason and evidence ID). Right: tracked need and the retrieved evidence passages.*
 
 ### 2.3 Five queries and query speed (`eval/q2_benchmark/`)
 
@@ -101,7 +96,7 @@ Apple M5 (MPS, fp16), 48,107 indexed chunks, warm, median of 10 runs:
 | sterling silver earrings for sensitive ears | 0.2 | 16.5 | 1.6 | 0.01 | 18.4 |
 | soft queen size bed sheets | 0.2 | 16.4 | 1.6 | 0.01 | 18.2 |
 
-Top-5 results for each query (title, category, price, rating, matched field, BM25 and dense ranks) are in `eval/q2_benchmark/summary.md`. Query encoding dominates (~90 % of the time); FAISS exact search over 48k vectors takes 1.6 ms and BM25 0.2 ms. With cross-encoder re-ranking of the top-20 fused products the mean latency over the 180 evaluation queries becomes **688 ms** (787 ms with metadata filters, Table 3.2).
+Top-5 results for each query (title, category, price, rating, matched field, BM25 and dense ranks) are in `eval/q2_benchmark/summary.md`. Query encoding dominates (~90 % of the time); FAISS exact search over 48k vectors takes 1.6 ms and BM25 0.2 ms. With cross-encoder re-ranking of the top-20 fused products the mean latency over the 169 evaluation queries becomes **688 ms** (787 ms with metadata filters, Table 3.2).
 
 ---
 
@@ -110,52 +105,56 @@ Top-5 results for each query (title, category, price, rating, matched field, BM2
 ### 3.1 Evaluation protocol
 
 - **Queries:** the fully specified need of each evaluation scenario (Q4), in English and in Chinese.
-- **Relevance judgments (two kinds).** *Programmatic qrels*: every catalogue product that satisfies all hard constraints of the scenario's hidden need (product-type leaf, audience / child age, budget, material). They are complete, so recall can be computed, and are used for all numbers below. *Human qrels*: the 1,080 pooled candidates (6 per scenario, Section 4.3) judged by three annotators (majority vote). Because only the pooled products are judged, we report human P@5 on the condensed list (precision over the judged products among the top 5; Sakai, SIGIR 2007) and human nDCG@10 with unjudged products counted as non-relevant; on average 27–55 % of a configuration's top 5 is judged (`judged@5`, in `eval/q3_retrieval/summary.md`). The pool was built from the chunk index, so human metrics slightly favour chunk-level configurations.
-- **Agreement between the two kinds:** the programmatic labels agree with the human gold on 80.1 % of the pooled pairs (κ = 0.61). They are precise (92 % of programmatically relevant products are judged relevant) but strict (they miss 31 % of human-relevant products, e.g. a product whose category leaf differs from the target leaf but is the same kind of item), so absolute programmatic numbers are conservative; both kinds rank the configurations in almost the same order.
-- **Metrics:** Precision@5, Recall@10, MRR@10, nDCG@10, plus mean latency per query (Apple M5, warm). 180 queries (121 English + 59 Chinese originals; every scenario has both an English and a Chinese version). Computed by `eval_retrieval.py`.
+- **Relevance judgments (two kinds).** *Programmatic qrels*: every catalogue product that satisfies all hard constraints of the scenario's hidden need (product-type leaf, audience / child age, budget, material). They are complete, so recall can be computed, and are used for all numbers below. *Human qrels*: the 1,014 unique pooled candidates (6 per scenario, Section 4.3) judged by three annotators (majority vote). Because only the pooled products are judged, we report human P@5 on the condensed list (precision over the judged products among the top 5; Sakai, SIGIR 2007) and human nDCG@10 with unjudged products counted as non-relevant; on average 27–55 % of a configuration's top 5 is judged (`judged@5`, in `eval/q3_retrieval/summary.md`). The pool was built from the chunk index, so human metrics slightly favour chunk-level configurations.
+- **Agreement between the two kinds:** the programmatic labels agree with the human gold on 79.9 % of the pooled pairs (κ = 0.60). They are precise (93 % of programmatically relevant products are judged relevant) but strict (they miss 32 % of human-relevant products, e.g. a product whose category leaf differs from the target leaf but is the same kind of item), so absolute programmatic numbers are conservative; both kinds rank the configurations in almost the same order.
+- **Metrics:** Precision@5, Recall@10, MRR@10, nDCG@10, plus mean latency per query (Apple M5, warm). 169 queries, one per unique scenario need (Section 4.3; every scenario has both an English and a Chinese version). Computed by `eval_retrieval.py`.
 
 ### 3.2 Results
 
 | Configuration | P@5 | R@10 | MRR@10 | nDCG@10 | Human P@5 (judged) | Human nDCG@10 | Latency (ms) |
 |---|---|---|---|---|---|---|---|
-| BM25 only | 0.370 | 0.178 | 0.518 | 0.380 | 0.614 | 0.423 | 0.3 |
-| Dense only (bge-m3) | 0.428 | 0.184 | 0.617 | 0.425 | 0.619 | 0.536 | 22 |
-| Hybrid, RRF (equal weights) | 0.444 | 0.208 | 0.614 | 0.440 | 0.599 | 0.579 | 20 |
-| Hybrid, weighted RRF (BM25 weight 0.5) | 0.457 | 0.211 | 0.624 | 0.453 | 0.632 | 0.564 | 20 |
-| Hybrid, weighted RRF (dense weight 0.5) | 0.427 | 0.200 | 0.591 | 0.427 | 0.623 | 0.510 | 21 |
-| RRF + cross-encoder re-ranking | 0.504 | 0.229 | 0.686 | 0.495 | 0.668 | 0.635 | 688 |
-| RRF + metadata filters | 0.658 | 0.328 | 0.773 | 0.661 | 0.849 | 0.634 | 22 |
-| RRF + re-ranking + metadata filters | **0.702** | **0.353** | **0.831** | **0.711** | **0.886** | **0.792** | 787 |
-| Product-level index: BM25 | 0.400 | 0.183 | 0.554 | 0.392 | 0.625 | 0.379 | 0.3 |
-| Product-level index: dense | 0.448 | 0.190 | 0.614 | 0.438 | 0.643 | 0.449 | 20 |
-| Product-level index: RRF | 0.459 | 0.205 | 0.625 | 0.454 | 0.622 | 0.495 | 18 |
-| Product-level index: RRF + re-ranking | 0.511 | 0.233 | 0.680 | 0.502 | 0.683 | 0.608 | 740 |
-| Product-level index: RRF + re-ranking + filters | **0.720** | **0.360** | **0.831** | **0.724** | **0.891** | **0.753** | 842 |
-| Chinese queries, dense only | 0.152 | 0.064 | 0.300 | 0.155 | 0.352 | 0.219 | 21 |
-| Chinese queries, RRF | 0.076 | 0.039 | 0.152 | 0.078 | 0.331 | 0.129 | 20 |
-| Chinese queries, RRF + re-ranking | 0.193 | 0.064 | 0.328 | 0.167 | 0.358 | 0.233 | 834 |
-| Chinese queries, LLM-translated → RRF + re-ranking | 0.504 | 0.231 | 0.653 | 0.491 | 0.674 | 0.507 | 780 |
+| BM25 only | 0.369 | 0.180 | 0.521 | 0.381 | 0.618 | 0.426 | 0.3 |
+| Dense only (bge-m3) | 0.420 | 0.187 | 0.612 | 0.421 | 0.624 | 0.533 | 22 |
+| Hybrid, RRF (equal weights) | 0.440 | 0.210 | 0.608 | 0.438 | 0.605 | 0.575 | 20 |
+| Hybrid, weighted RRF (BM25 weight 0.5) | 0.451 | 0.213 | 0.619 | 0.449 | 0.635 | 0.558 | 20 |
+| Hybrid, weighted RRF (dense weight 0.5) | 0.426 | 0.204 | 0.593 | 0.429 | 0.624 | 0.510 | 21 |
+| RRF + cross-encoder re-ranking | 0.499 | 0.233 | 0.686 | 0.494 | 0.676 | 0.641 | 688 |
+| RRF + metadata filters | 0.656 | 0.332 | 0.770 | 0.660 | 0.862 | 0.634 | 22 |
+| RRF + re-ranking + metadata filters | **0.698** | **0.356** | **0.826** | **0.705** | **0.895** | **0.792** | 787 |
+| Product-level index: BM25 | 0.399 | 0.186 | 0.560 | 0.394 | 0.632 | 0.382 | 0.3 |
+| Product-level index: dense | 0.441 | 0.191 | 0.610 | 0.432 | 0.647 | 0.438 | 20 |
+| Product-level index: RRF | 0.452 | 0.208 | 0.626 | 0.453 | 0.630 | 0.492 | 18 |
+| Product-level index: RRF + re-ranking | 0.503 | 0.236 | 0.682 | 0.499 | 0.690 | 0.608 | 740 |
+| Product-level index: RRF + re-ranking + filters | **0.715** | **0.363** | **0.826** | **0.718** | **0.901** | **0.752** | 842 |
+| Chinese queries, dense only | 0.151 | 0.064 | 0.299 | 0.154 | 0.360 | 0.221 | 21 |
+| Chinese queries, RRF | 0.075 | 0.040 | 0.152 | 0.078 | 0.335 | 0.130 | 20 |
+| Chinese queries, RRF + re-ranking | 0.191 | 0.065 | 0.329 | 0.166 | 0.366 | 0.238 | 834 |
+| Chinese queries, LLM-translated → RRF + re-ranking | 0.496 | 0.233 | 0.647 | 0.484 | 0.676 | 0.508 | 780 |
 
-Timeline search (180 queries with an added "released after 2021" requirement, RRF + re-ranking, top-10):
+Timeline search (169 queries with an added "released after 2021" requirement, RRF + re-ranking, top-10):
 
 | Method | Date precision@10 | Date **and** need precision@10 |
 |---|---|---|
-| Requirement written in the query text | 0.218 | 0.117 |
-| Requirement as a `date_first_available` filter | **1.000** | **0.291** |
+| Requirement written in the query text | 0.214 | 0.113 |
+| Requirement as a `date_first_available` filter | **1.000** | **0.288** |
 
-*P@5, R@10, MRR@10 and nDCG@10 use programmatic qrels (absolute recall is low because many scenarios have dozens of satisfying products and only 10 are retrieved); the two human columns use the annotated pool. Under human judgments re-ranking (+0.07 judged P@5, +0.06 nDCG) and metadata filters (+0.25 judged P@5) are confirmed as the main gains, translation recovers Chinese queries (0.33 → 0.67), whereas plain RRF is no better than its single retrievers on the judged pool (0.599 vs 0.614 / 0.619) although it has the higher nDCG (0.579 vs 0.423 / 0.536).*
+*P@5, R@10, MRR@10 and nDCG@10 use programmatic qrels (absolute recall is low because many scenarios have dozens of satisfying products and only 10 are retrieved); the two human columns use the annotated pool. Under human judgments re-ranking (+0.07 judged P@5, +0.07 nDCG) and metadata filters (+0.26 judged P@5) are confirmed as the main gains, translation recovers Chinese queries (0.34 → 0.68), whereas plain RRF is no better than its single retrievers on the judged pool (0.605 vs 0.618 / 0.624) although it has the higher nDCG (0.575 vs 0.426 / 0.533).*
+
+![Retrieval precision@5](eval/figures/fig_retrieval.png)
+
+*Figure 3. Precision@5 of the main retrieval configurations under the two kinds of relevance judgments (Section 3.1).*
 
 ### 3.3 Innovations
 
-**(1) Hybrid fusion.** BM25 captures exact attribute terms ("925 sterling silver", "1000-piece"), while dense retrieval captures paraphrases ("for my toddler" ≈ "ages 2+"). RRF combines their ranks without score calibration. Fusion beats both single retrievers (P@5 0.444 vs 0.370 / 0.428); down-weighting BM25 to 0.5 helps slightly (0.457), down-weighting dense hurts (0.427), so dense is the stronger signal but BM25 still adds exact-term matches. On the human-judged pool the gain of plain fusion is visible in nDCG@10 (0.579 vs 0.423 / 0.536) but not in judged P@5 (0.599 vs 0.614 / 0.619), so we treat fusion mainly as a better candidate generator for re-ranking and filtering, which is where the large gains come from. *Example (S075, "a microfiber bed sheet set under $50"):* BM25 ranks a cooling fitted sheet second (keyword overlap on "sheet"), dense ranks an oversize quilt third; RRF keeps the items both agree on and all of its top-3 satisfy the need (P@5 +0.6 over the better single retriever).
+**(1) Hybrid fusion.** BM25 captures exact attribute terms ("925 sterling silver", "1000-piece"), while dense retrieval captures paraphrases ("for my toddler" ≈ "ages 2+"). RRF combines their ranks without score calibration. Fusion beats both single retrievers (P@5 0.440 vs 0.369 / 0.420); down-weighting BM25 to 0.5 helps slightly (0.451), down-weighting dense hurts (0.426), so dense is the stronger signal but BM25 still adds exact-term matches. On the human-judged pool the gain of plain fusion is visible in nDCG@10 (0.575 vs 0.426 / 0.533) but not in judged P@5 (0.605 vs 0.618 / 0.624), so we treat fusion mainly as a better candidate generator for re-ranking and filtering, which is where the large gains come from. *Example (S075, "a microfiber bed sheet set under $50"):* BM25 ranks a cooling fitted sheet second (keyword overlap on "sheet"), dense ranks an oversize quilt third; RRF keeps the items both agree on and all of its top-3 satisfy the need (P@5 +0.6 over the better single retriever).
 
-**(2) Re-ranking.** A multilingual cross-encoder (`BAAI/bge-reranker-v2-m3`) re-scores the top-20 fused products (title, categories and features, 128 words) against the query, which fixes cases where products match many query words but violate the main intent. Re-ranking gives the largest single gain without filters (P@5 0.444 → 0.504, MRR 0.614 → 0.686) at a cost of ~0.67 s per query. *Example (S026, "a wristwatch for women under $220"):* RRF's top-3 are a men's watch, a $125 women's automatic and a Russian military watch (0/3 relevant); after re-ranking the top-3 are three women's watches within budget (3/3). *Example (S123, "balloons for a 5-year-old under $25"):* RRF ranks character "5th birthday" bouquets that fail the hidden need's constraints (0/3); the cross-encoder promotes party-balloon packs that satisfy it (3/3).
+**(2) Re-ranking.** A multilingual cross-encoder (`BAAI/bge-reranker-v2-m3`) re-scores the top-20 fused products (title, categories and features, 128 words) against the query, which fixes cases where products match many query words but violate the main intent. Re-ranking gives the largest single gain without filters (P@5 0.440 → 0.499, MRR 0.608 → 0.686) at a cost of ~0.67 s per query. *Example (S026, "a wristwatch for women under $220"):* RRF's top-3 are a men's watch, a $125 women's automatic and a Russian military watch (0/3 relevant); after re-ranking the top-3 are three women's watches within budget (3/3). *Example (S123, "balloons for a 5-year-old under $25"):* RRF ranks character "5th birthday" bouquets that fail the hidden need's constraints (0/3); the cross-encoder promotes party-balloon packs that satisfy it (3/3).
 
-**(3) Timeline and metadata search.** Hard constraints such as budget, minimum rating, category and "released after 2022" are applied as filters on structured metadata instead of being left to embeddings, which do not reliably encode "under $50". If filtering empties the candidate set, the constraints are relaxed step by step and the relaxation is reported to the user. Metadata filtering is the most effective single innovation (RRF P@5 0.444 → 0.658; with re-ranking 0.504 → 0.702) at almost no latency cost (filters are applied to the top-200 fused candidates). For time, writing "released after 2021" into the query is almost ignored by both retrievers (date precision 0.218), whereas a date filter guarantees it (1.000) and more than doubles the share of results that satisfy both the date and the need (0.117 → 0.291). *Example (S110, "a coffee mug under $15"):* without filters the top-3 cost $16.93–$22.99 (embeddings do not encode "under $15"); with the price filter all top-3 are $12.98–$14.99 mugs.
+**(3) Timeline and metadata search.** Hard constraints such as budget, minimum rating, category and "released after 2022" are applied as filters on structured metadata instead of being left to embeddings, which do not reliably encode "under $50". If filtering empties the candidate set, the constraints are relaxed step by step and the relaxation is reported to the user. Metadata filtering is the most effective single innovation (RRF P@5 0.440 → 0.656; with re-ranking 0.499 → 0.698) at almost no latency cost (filters are applied to the top-200 fused candidates). For time, writing "released after 2021" into the query is almost ignored by both retrievers (date precision 0.214), whereas a date filter guarantees it (1.000) and more than doubles the share of results that satisfy both the date and the need (0.113 → 0.288). *Example (S110, "a coffee mug under $15"):* without filters the top-3 cost $16.93–$22.99 (embeddings do not encode "under $15"); with the price filter all top-3 are $12.98–$14.99 mugs.
 
-**(4) Multilingual search (English / Chinese).** bge-m3 maps Chinese queries and English products into one space, whereas BM25 cannot match across languages. We compare direct Chinese dense retrieval with LLM translation/rewriting to English before hybrid retrieval. Direct Chinese retrieval is weak (dense P@5 0.152): the cross-lingual embedding finds the domain but not the exact type or constraint, and fusing with BM25 makes it worse (0.076) because BM25 can only match digits and Latin tokens. Translating the request to English first (one short LLM call, cached) recovers English-level quality (P@5 0.504, identical to English queries with the same pipeline). *Example (S127, "我想买适合5岁孩子的积木，预算65美元以内"):* Chinese RRF returns die-cast cars (BM25 matched the token "65" in "1.65-inch"), Chinese dense returns a projector and jigsaw puzzles; the translated query "building blocks for 5 year olds under $65" returns three building-block sets (3/3 relevant). The agent therefore always retrieves with the rewritten English query and answers in the user's language.
+**(4) Multilingual search (English / Chinese).** bge-m3 maps Chinese queries and English products into one space, whereas BM25 cannot match across languages. We compare direct Chinese dense retrieval with LLM translation/rewriting to English before hybrid retrieval. Direct Chinese retrieval is weak (dense P@5 0.152): the cross-lingual embedding finds the domain but not the exact type or constraint, and fusing with BM25 makes it worse (0.075) because BM25 can only match digits and Latin tokens. Translating the request to English first (one short LLM call, cached) recovers English-level quality (P@5 0.496 vs 0.499 for English queries with the same pipeline). *Example (S127, "我想买适合5岁孩子的积木，预算65美元以内"):* Chinese RRF returns die-cast cars (BM25 matched the token "65" in "1.65-inch"), Chinese dense returns a projector and jigsaw puzzles; the translated query "building blocks for 5 year olds under $65" returns three building-block sets (3/3 relevant). The agent therefore always retrieves with the rewritten English query and answers in the user's language.
 
-**(5) Chunking and indexing.** Field-level chunks with parent-document merging versus whole-product indexing; also BM25 tokenisation (lower-casing, punctuation, stop-words) and the effect of the BGE instruction prefix. On our need-style queries the product-level index is slightly **better** than field-level chunks for every configuration (e.g. RRF + re-ranking + filters P@5 0.720 vs 0.702, BM25 0.400 vs 0.370). We report this honestly: our queries ask about type, audience and budget, which are stated in the title and categories of every product, so whole-product vectors capture them well, while chunking spreads the signal and MaxP merging only partly recovers it. Chunks remain useful for evidence: the matched field and its text are what the generator cites, and long descriptions would otherwise be truncated. Removing the BGE instruction prefix from documents (it had been applied to both sides in the first version) was necessary for the index to be valid.
+**(5) Chunking and indexing.** Field-level chunks with parent-document merging versus whole-product indexing; also BM25 tokenisation (lower-casing, punctuation, stop-words) and the effect of the BGE instruction prefix. On our need-style queries the product-level index is slightly **better** than field-level chunks for every configuration (e.g. RRF + re-ranking + filters P@5 0.715 vs 0.698, BM25 0.399 vs 0.369). We report this honestly: our queries ask about type, audience and budget, which are stated in the title and categories of every product, so whole-product vectors capture them well, while chunking spreads the signal and MaxP merging only partly recovers it. Chunks remain useful for evidence: the matched field and its text are what the generator cites, and long descriptions would otherwise be truncated. Removing the BGE instruction prefix from documents (it had been applied to both sides in the first version) was necessary for the index to be valid.
 
 Queries that failed in the first version and work now: S026 (wristwatch for women, fixed by re-ranking), S110 (mug under $15, fixed by the price filter), S127 (Chinese building-block request, fixed by translation), and any "released after …" request (fixed by the date filter).
 
@@ -181,53 +180,54 @@ Scenario-based design (`eval/scenarios/`, `eval/annotation/`). Each hidden need 
 
 | Item | Content |
 |---|---|
-| Scenario | Domain, hidden complete need (product type; audience, child age or material; budget), opening message at one of three specificity levels (vague / partial / complete), in English (121) or Chinese (59) |
-| Decision records | 2 dialogue snapshots per scenario (360): *should the agent ask or recommend?* and, if ask, *which attribute?* |
-| Relevance records | 6 pooled candidates per scenario (1,080) from 7 retrieval configurations (BM25, dense, RRF, RRF + re-ranking, + filters, Chinese dense, Chinese RRF + re-ranking), judged *satisfies the need / does not* |
-| Size | 180 scenarios (60 per domain, 72 product types; 81 vague, 63 partial, 36 complete openings) → 360 decision + 1,080 relevance = **1,440 records** |
+| Scenario | Domain, hidden complete need (product type; audience, child age or material; budget), opening message at one of three specificity levels (vague / partial / complete), in English (114) or Chinese (55) |
+| Decision records | Dialogue snapshots (2 per scenario): *should the agent ask or recommend?* and, if ask, *which attribute?* — 299 unique dialogues (68 % ask, 32 % recommend) |
+| Relevance records | 6 pooled candidates per scenario from 7 retrieval configurations (BM25, dense, RRF, RRF + re-ranking, + filters, Chinese dense, Chinese RRF + re-ranking), judged *satisfies the need / does not* — 1,014 unique (need, product) pairs (54 % relevant) |
+| Size | **169 unique scenarios** (55–58 per domain; 77 vague, 58 partial, 34 complete openings) → 299 decision + 1,014 relevance = **1,313 unique records** |
+| De-duplication | 180 scenarios were generated; 11 repeated an earlier hidden need (their 22 snapshots and 66 (need, product) pairs are dropped) and a further 39 snapshots repeated an earlier dialogue verbatim (e.g. "I need a toy."). Duplicates are removed by `dedup.py` (first occurrence kept; list in `eval_set_unique.json`), and every metric in this report is computed on the unique set |
 | Annotators | 3 group members, independently (`sheet_A/B/C.xlsx`); gold label = majority vote (no unresolved items) |
-| Agreement (all 1,440 binary records) | **95.7 %** mean pairwise agreement, mean Cohen's κ 0.911, Fleiss' κ 0.911 |
+| Agreement (all 1,313 unique binary records) | **95.8 %** mean pairwise agreement, mean Cohen's κ 0.913, Fleiss' κ 0.913 |
 
 Agreement per label type (`eval/annotation/iaa_report.json`):
 
 | Label | Records | Mean pairwise agreement | Mean Cohen's κ | Fleiss' κ |
 |---|---|---|---|---|
-| Ask or recommend | 360 | 98.9 % | 0.972 | 0.972 |
-| Attribute to ask about (where all three chose *ask*) | 258 | 81.1 % | 0.748 | 0.742 |
-| Product satisfies the need | 1,080 | 94.7 % | 0.893 | 0.893 |
-| All binary records | 1,440 | **95.7 %** | 0.911 | 0.911 |
+| Ask or recommend | 299 | 98.7 % | 0.969 | 0.969 |
+| Attribute to ask about (where all three chose *ask*) | 204 | 86.6 % | 0.813 | 0.812 |
+| Product satisfies the need | 1,014 | 94.9 % | 0.897 | 0.897 |
+| All binary records | 1,313 | **95.8 %** | 0.913 | 0.913 |
 
-After one round of guideline clarification, in which one annotator re-checked the items labelled "wrong product type", relevance agreement is 94.7 % (first round 79.7 %); the majority-vote gold labels were unchanged.
+After one round of guideline clarification, in which one annotator re-checked the items labelled "wrong product type", relevance agreement is 94.9 % (first round 79.9 %); the majority-vote gold labels were unchanged.
 
 ### 4.4 Task metrics
 
 | Metric | Value |
 |---|---|
-| Ask/recommend decision — precision / recall / F1 (entropy criterion, 360 snapshots)* | 0.827 / 1.000 / 0.905 |
-| Ask/recommend decision — LLM judgement / LLM judgement + thinking* | 0.980 / 0.752 / 0.851; 0.978 / 0.857 / 0.913 |
+| Ask/recommend decision — precision / recall / F1 (entropy criterion, 299 snapshots)* | 0.803 / 1.000 / 0.891 |
+| Ask/recommend decision — LLM judgement / LLM judgement + thinking* | 0.973 / 0.711 / 0.822; 0.972 / 0.838 / 0.900 |
 | Ask/recommend decision — rule (required slot missing)* | 1.000 / 1.000 / 1.000 |
-| Clarifying-attribute accuracy (entropy selection with entropy / LLM / LLM + thinking / rule decision)* | 0.566 / 0.552 / 0.566 / 0.605 |
-| Recommendation precision (share of recommended products satisfying all hard constraints, programmatic) | 0.645 |
-| Recommendation precision vs. human labels (final top-3 of the full agent; 41 % of them are in the judged pool) | 0.931 (B0 0.857, B1 0.830, B4 0.934) |
-| Scenarios whose judged recommendations include a human-relevant product | 0.979 (B0 0.925) |
-| Success@3 within 5 turns (user simulator, 180 scenarios) | 0.883 (first recommendation already correct: 0.861) |
-| Average turns per dialogue / questions asked | 3.31 / 2.09 |
-| Hard-constraint violation rate (per recommended product) | 0.355 |
+| Clarifying-attribute accuracy (entropy selection with entropy / LLM / LLM + thinking / rule decision)* | 0.525 / 0.517 / 0.538 / 0.583 |
+| Recommendation precision (share of recommended products satisfying all hard constraints, programmatic) | 0.628 |
+| Recommendation precision vs. human labels (final top-3 of the full agent; 42 % of them are in the judged pool) | 0.937 (B0 0.865, B1 0.843, B4 0.944) |
+| Scenarios whose judged recommendations include a human-relevant product | 0.978 (B0 0.929) |
+| Success@3 within 5 turns (user simulator, 169 scenarios) | 0.876 (first recommendation already correct: 0.852) |
+| Average turns per dialogue / questions asked | 3.35 / 2.11 |
+| Hard-constraint violation rate (per recommended product) | 0.372 |
 
-\* Against the human gold labels (majority of three annotators). The annotators followed the guideline "ask if a required attribute is missing", so the human decisions coincide with the rule-based decision on all 360 snapshots and the rule variant scores 1.0; the informative comparison is between the learned criteria. The entropy criterion never misses a needed question but asks unnecessarily in 54 of 102 "recommend" snapshots; LLM judgement rarely over-asks but misses a quarter of the needed questions, and thinking mode recovers part of them. Clarifying-attribute accuracy is low for all variants (0.55–0.61) because they ask about the attribute that best splits the candidates, while the annotators followed the fixed priority "product type → audience/age → budget". A recall/F1 for recommendations is not reported: with pooled judgments the set of all relevant products is unknown, and Success@3 plays that role.
+\* Against the human gold labels (majority of three annotators). The annotators followed the guideline "ask if a required attribute is missing", so the human decisions coincide with the rule-based decision on all 299 snapshots and the rule variant scores 1.0; the informative comparison is between the learned criteria. The entropy criterion never misses a needed question but asks unnecessarily in 50 of 95 "recommend" snapshots; LLM judgement rarely over-asks but misses 29 % of the needed questions, and thinking mode recovers part of them. Clarifying-attribute accuracy is low for all variants (0.52–0.58) because they ask about the attribute that best splits the candidates, while the annotators followed the fixed priority "product type → audience/age → budget". A recall/F1 for recommendations is not reported: with pooled judgments the set of all relevant products is unknown, and Success@3 plays that role.
 
 ### 4.5 Answer-level RAG metrics
 
 | Metric | Value |
 |---|---|
-| Faithfulness (claims supported by evidence, LLM judge) | 0.999 (full agent); 0.993–0.994 for B0, B1, B4 and Full − I3 |
-| Answer relevance | 0.600 |
-| Context precision | 0.964 |
+| Faithfulness (claims supported by evidence, LLM judge) | 0.998 (full agent); 0.993–0.995 for B0, B1, B4 and Full − I3 |
+| Answer relevance | 0.604 |
+| Context precision | 0.968 |
 | Citation precision (programmatic: every product ID and evidence ID in the answer must be among the retrieved evidence; invalid ones are dropped by the validator) | 1.000 after validation |
-| Self-check: share of numeric claims supported by metadata | 0.951 |
-| LLM-judge vs. human agreement (context relevance on the 1,080 annotated pairs) | 92.3 % agreement, Cohen's κ 0.846 (precision 0.948, recall 0.907) |
+| Self-check: share of numeric claims supported by metadata | 0.952 |
+| LLM-judge vs. human agreement (context relevance on the 1,014 annotated pairs) | 92.7 % agreement, Cohen's κ 0.853 (precision 0.951, recall 0.913) |
 
-Judge: `deepseek-flash`, RAGAS-style prompts (`rag_judge.py`) on the final answer of each of the 180 dialogues. Answer relevance is moderate for all systems (0.55–0.60) because the judge penalises the explanatory sentences around the product list; it should be read comparatively. The judge was calibrated by applying its context-relevance prompt to the 1,080 human-labelled (need, product) pairs (`rag_judge.py --calibrate`): it agrees with the human majority closely (κ 0.846, compared with 0.87–0.94 between annotators), so we use it for context precision.
+Judge: `deepseek-flash`, RAGAS-style prompts (`rag_judge.py`) on the final answer of each of the 169 dialogues. Answer relevance is moderate for all systems (0.55–0.60) because the judge penalises the explanatory sentences around the product list; it should be read comparatively. The judge was calibrated by applying its context-relevance prompt to the 1,014 human-labelled (need, product) pairs (`rag_judge.py --calibrate`): it agrees with the human majority closely (κ 0.853, compared with 0.87–0.94 between annotators), so we use it for context precision.
 
 ### 4.6 Performance
 
@@ -237,13 +237,13 @@ LLM: `deepseek-flash` with thinking (reasoning) mode **disabled** by default. In
 |---|---|
 | Retrieval latency (warm) | ~25 ms without re-ranking; ~0.4–0.6 s with cross-encoder re-ranking of 20 candidates (Apple M5, fp16) |
 | End-to-end latency per turn (p50 / p95) | 3.85 s / 7.93 s (full agent)‡; 4.24 s / 6.00 s (B4) |
-| LLM calls and tokens per dialogue | 6.94 calls, ~8,570 tokens (full); 4.5 calls, ~4,740 tokens (B4) |
-| Cost per 1,000 dialogues§ | $1.32 (full); $0.73 (B4); $1.75 with thinking mode |
+| LLM calls and tokens per dialogue | 7.0 calls, ~8,680 tokens (full); 4.6 calls, ~4,810 tokens (B4) |
+| Cost per 1,000 dialogues§ | $1.34 (full); $0.74 (B4); $1.77 with thinking mode |
 | Throughput (dialogues/s, with concurrency) | 0.39 dialogues/s (180 dialogues in 7.6 min, 6 parallel workers, one Mac)‡ |
 
 ‡ Latency and throughput of the full agent are taken from its first run (identical pipeline except for the self-check's budget handling, which costs no extra calls); the wall-clock time of the corrected re-run is not comparable because the machine went to sleep during it.
 
-§ Cost uses DeepSeek's `deepseek-flash` off-peak prices (input $0.15 per million tokens on a cache miss, $0.003 on a cache hit; output $0.60), at which all experiments were run, and a 40 % context-cache hit rate, the overall rate on our DeepSeek bill (the per-call hit count was not logged in these runs; `llm.py` now records it). At peak-hour list price without caching the figures would be 2.7× higher ($3.52 for the full agent). Check against the bill: all LLM calls of the project (15 dialogue configurations × 180 dialogues, the LLM judge, the decision evaluation, translations and smoke tests; ~24 M input and ~3.3 M output tokens) cost **$4.61** in total; the same token counts priced with the rule above give ≈ $4.2; the remainder is mostly the part of the corrected re-run that fell into peak hours.
+§ Cost uses DeepSeek's `deepseek-flash` off-peak prices (input $0.15 per million tokens on a cache miss, $0.003 on a cache hit; output $0.60), at which all experiments were run, and a 40 % context-cache hit rate, the overall rate on our DeepSeek bill (the per-call hit count was not logged in these runs; `llm.py` now records it). At peak-hour list price without caching the figures would be 2.7× higher ($3.57 for the full agent). Check against the bill: all LLM calls of the project (15 dialogue configurations × 180 dialogues, the LLM judge, the decision evaluation, translations and smoke tests; ~24 M input and ~3.3 M output tokens) cost **$4.61** in total; the same token counts priced with the rule above give ≈ $4.2; the remainder is mostly the part of the corrected re-run that fell into peak hours.
 
 Scalability: exact inner-product search over 48k vectors takes about 2 ms. For catalogues in the millions, FAISS IVF/HNSW indexes and a vector database would replace `IndexFlatIP`; BM25 as a sparse matrix scales linearly in the number of postings; LLM latency dominates per-turn cost: retrieval without re-ranking is ~20 ms and re-ranking ~0.7 s, while the 2–3 LLM calls of a turn take ~3 s. The self-check and evidence check add ~2.5 LLM calls per dialogue (+$0.6 per 1,000 dialogues) but no extra retrieval. To scale: run the re-ranker on a GPU server (batching, ~10× faster), cache translations and state-tracking for repeated openings, and parallelise the independent LLM calls of a turn; the throughput above is limited by API latency, not by local compute.
 
@@ -259,39 +259,44 @@ Scalability: exact inner-product search over 48k vectors takes about 2 ms. For c
 
 **I3. Evidence sufficiency check and claim-level self-check.** Before recommending, the agent checks whether the evidence covers the hard constraints (a corrective-RAG step inspired by CRAG; Yan et al., 2024): if coverage is partial it relaxes filters and retrieves again; if nothing fits it says so instead of inventing a match. After generation, each claim is verified against its cited evidence (in the spirit of Chain-of-Verification; Dhuliawala et al., ACL 2024 Findings), and numeric claims (price, rating) are checked against metadata. *Example (self-check, S003, Chinese):* the generator wrote that a dress is "适合聚会、通勤等多种场合" (suitable for parties and commuting); the claim had no support in the evidence and was removed. *Example (evidence check, S121, "a doll for a 14-year-old under $85"):* none of the top-10 candidates satisfies the age requirement, so the agent answers "I couldn't find a product in the catalogue that matches all of your requirements. Would you like to relax the budget or another requirement?" instead of recommending dolls for toddlers.
 
-**I4 (optional). Aspect-level explanations.** Reasons are organised by the aspects the user cares about (material, comfort, age suitability), each tied to evidence or explicitly marked "not stated". In our ablation it did not help (success 0.878 vs 0.883, supported-claim rate 0.883 vs 0.951): longer explanations contain more unsupported claims, so I4 is kept optional.
+**I4 (optional). Aspect-level explanations.** Reasons are organised by the aspects the user cares about (material, comfort, age suitability), each tied to evidence or explicitly marked "not stated". In our ablation it did not help (success 0.870 vs 0.876, supported-claim rate 0.883 vs 0.952): longer explanations contain more unsupported claims, so I4 is kept optional.
 
 ### 5.2 Ablation study
 
-User simulator: DeepSeek plays the user with a hidden need. It only knows the attribute values, never the target product, to avoid leaking the answer (Zhu et al., WWW 2024 Companion). It answers only what is asked, at most 5 turns. 180 scenarios, one run per configuration (agent temperature 0, thinking disabled). Success@3 = at least one of the top-3 recommended products satisfies every hard constraint of the hidden need, checked programmatically against metadata.
+User simulator: DeepSeek plays the user with a hidden need. It only knows the attribute values, never the target product, to avoid leaking the answer (Zhu et al., WWW 2024 Companion). It answers only what is asked, at most 5 turns. 169 unique scenarios, one run per configuration (agent temperature 0, thinking disabled). Success@3 = at least one of the top-3 recommended products satisfies every hard constraint of the hidden need, checked programmatically against metadata.
 
 | Configuration | Success@3 | First-rec. success | Avg. turns | Questions | Constraint violations | Decision F1* | Faithfulness | LLM calls / dialogue | Cost / 1k dialogues |
 |---|---|---|---|---|---|---|---|---|---|
-| B0: single-turn RAG (history concatenated) | 0.789 | 0.433 | 2.32 | 0 | 0.723 | 0 | 0.993 | 2.3 | $0.73 |
-| B1: + I2 rewriting | 0.856 | 0.489 | 2.02 | 0 | 0.688 | 0 | 0.994 | 4.0 | $0.91 |
-| B2: + clarification (LLM judgement) | 0.861 | 0.767 | 2.71 | 1.22 | 0.544 | 0.851 | – | 5.4 | $0.80 |
-| B3: + I1 entropy decision & question selection | 0.833 | 0.811 | 3.40 | 2.08 | 0.404 | 0.905 | – | 4.7 | $0.76 |
-| B4: + I2 metadata filters | 0.889 | 0.872 | 3.29 | 2.09 | 0.354 | 0.905 | 0.994 | 4.5 | $0.73 |
-| Full: + I3 evidence check & self-check† | 0.883 | 0.861 | 3.31 | 2.09 | 0.355 | 0.905 | **0.999** | 6.9 | $1.32 |
-| Full − I1 (no clarification) | 0.594 | 0.489 | 1.38 | 0 | 0.565 | 0 | – | 5.2 | $1.12 |
-| Full − I2 (no rewriting / filters) | 0.861 | 0.844 | 3.33 | 2.08 | 0.352 | 0.905 | – | 7.0 | $1.21 |
-| Full − I3 | **0.894** | **0.872** | 3.29 | 2.08 | 0.365 | 0.905 | 0.994 | 4.5 | $0.73 |
+| B0: single-turn RAG (history concatenated) | 0.793 | 0.438 | 2.31 | 0 | 0.727 | 0 | 0.993 | 2.3 | $0.73 |
+| B1: + I2 rewriting | 0.852 | 0.485 | 2.04 | 0 | 0.697 | 0 | 0.995 | 4.1 | $0.92 |
+| B2: + clarification (LLM judgement) | 0.858 | 0.763 | 2.72 | 1.22 | 0.558 | 0.822 | – | 5.4 | $0.80 |
+| B3: + I1 entropy decision & question selection | 0.828 | 0.805 | 3.44 | 2.11 | 0.424 | 0.891 | – | 4.8 | $0.77 |
+| B4: + I2 metadata filters | 0.882 | **0.864** | 3.33 | 2.11 | 0.372 | 0.891 | 0.993 | 4.6 | $0.74 |
+| Full: + I3 evidence check & self-check† | 0.876 | 0.852 | 3.35 | 2.11 | 0.372 | 0.891 | **0.998** | 7.0 | $1.34 |
+| Full − I1 (no clarification) | 0.586 | 0.485 | 1.39 | 0 | 0.580 | 0 | – | 5.2 | $1.13 |
+| Full − I2 (no rewriting / filters) | 0.852 | 0.834 | 3.38 | 2.11 | 0.369 | 0.891 | – | 7.1 | $1.23 |
+| Full − I3 | **0.888** | **0.864** | 3.33 | 2.11 | 0.383 | 0.891 | 0.995 | 4.6 | $0.74 |
+
+![Ablation results](eval/figures/fig_ablation.png)
+
+*Figure 4. Ablation of the downstream innovations: dialogue success (left) and the share of recommended products that violate a hard constraint (right).*
+
 Sub-ablations of I1 and options (full agent with one component changed):
 
 | Variant | Success@3 | First-rec. success | Questions | Useful-question rate | Over-asking on complete openings | Constraint violations | LLM calls |
 |---|---|---|---|---|---|---|---|
-| Decision: entropy (full) | 0.883 | 0.861 | 2.09 | 0.814 | 0.500 | 0.355 | 6.9 |
-| Decision: rule (required slots missing) | 0.889 | 0.806 | 1.71 | 0.964 | 0.000 | 0.411 | 7.0 |
-| Decision: LLM judgement | 0.883 | 0.761 | 1.29 | 0.966 | 0.028 | 0.478 | 6.9 |
-| Question choice: LLM | 0.900 | 0.828 | 2.44 | 0.577 | 0.500 | 0.375 | 9.8 |
-| Question choice: random unfilled slot | 0.883 | 0.844 | 2.11 | 0.818 | 0.500 | 0.363 | 7.1 |
-| Full + DeepSeek thinking mode | **0.900** | **0.872** | 2.11 | 0.815 | 0.500 | **0.316** | 6.8 ($1.75 / 1k) |
-| Full + I4 aspect explanations | 0.878 | 0.839 | 2.09 | 0.814 | 0.500 | 0.363 | 7.1 |
+| Decision: entropy (full) | 0.876 | 0.852 | 2.11 | 0.812 | 0.500 | 0.372 | 7.0 |
+| Decision: rule (required slots missing) | 0.882 | 0.799 | 1.71 | 0.965 | 0.000 | 0.427 | 7.0 |
+| Decision: LLM judgement | 0.876 | 0.757 | 1.30 | 0.968 | 0.029 | 0.491 | 6.9 |
+| Question choice: LLM | **0.893** | 0.822 | 2.45 | 0.575 | 0.500 | 0.387 | 9.8 |
+| Question choice: random unfilled slot | 0.876 | 0.834 | 2.12 | 0.816 | 0.500 | 0.381 | 7.2 |
+| Full + DeepSeek thinking mode | **0.893** | **0.864** | 2.13 | 0.814 | 0.500 | **0.332** | 6.9 ($1.77 / 1k) |
+| Full + I4 aspect explanations | 0.870 | 0.834 | 2.11 | 0.812 | 0.500 | 0.376 | 7.1 |
 
-\* Decision F1 on the 360 human-annotated snapshots (Section 4.4); configurations that never ask have recall 0. Faithfulness is the LLM-judge score, run for the main configurations only. Cost per 1,000 dialogues is computed as in Section 4.6 (off-peak price, 40 % cache hits).
-† Corrected run. A first run of the full agent had a self-check bug: it also rewrote the user's budget when the budget was quoted in a reason (e.g. "within your $75 budget" → "$21.80"), which lowered faithfulness to 0.977 (supported numeric claims 0.915, success 0.889). Amounts next to budget words or equal to the budget are no longer treated as price claims; after the fix faithfulness rises to 0.999 and supported numeric claims to 0.951.
+\* Decision F1 on the 299 unique human-annotated snapshots (Section 4.4); configurations that never ask have recall 0. Faithfulness is the LLM-judge score, run for the main configurations only. Cost per 1,000 dialogues is computed as in Section 4.6 (off-peak price, 40 % cache hits).
+† Corrected run. A first run of the full agent had a self-check bug: it also rewrote the user's budget when the budget was quoted in a reason (e.g. "within your $75 budget" → "$21.80"), which lowered faithfulness to 0.977 and supported numeric claims to 0.915 (measured on all 180 generated scenarios). Amounts next to budget words or equal to the budget are no longer treated as price claims; after the fix faithfulness is 0.998 and supported numeric claims 0.952.
 
-**Findings.** (1) Clarification is the main driver: removing it (Full − I1) drops success from 0.883 to 0.594, and from B1 to B2 the first-recommendation success rises from 0.489 to 0.767 because the agent stops recommending blindly. (2) Constraint-to-filter mapping mostly reduces violations (B3 → B4: 0.404 → 0.354) and raises success (0.833 → 0.889). (3) The entropy criterion asks whenever candidates are diverse, which gives perfect recall of needed questions but over-asks on half of the fully specified openings (e.g. S006, "a ring for women under $25" → "statement, stacking or bands?"); the rule-based decision asks fewer, more useful questions (0.964) at the same success. Entropy-based *selection* is no better than asking a random unfilled slot (success 0.883 vs 0.883; first-rec. success 0.861 vs 0.844), an honest negative result: with only 3–5 slots, any required slot is informative. (4) I3 does not raise simulator success (Full − I3: 0.894 vs 0.883, within noise of one run), but it gives the highest faithfulness (0.999 vs 0.994), makes the agent refuse instead of inventing a match (61 refusals without clarification), and verifies 95.1 % of numeric claims; its cost is ~2.4 extra LLM calls (+$0.6 per 1,000 dialogues). (5) Thinking mode gives the lowest violation rate (0.316) at +33 % cost.
+**Findings.** (1) Clarification is the main driver: removing it (Full − I1) drops success from 0.876 to 0.586, and from B1 to B2 the first-recommendation success rises from 0.485 to 0.763 because the agent stops recommending blindly. (2) Constraint-to-filter mapping mostly reduces violations (B3 → B4: 0.424 → 0.372) and raises success (0.828 → 0.882). (3) The entropy criterion asks whenever candidates are diverse, which gives perfect recall of needed questions but over-asks on half of the fully specified openings (e.g. S006, "a ring for women under $25" → "statement, stacking or bands?"); the rule-based decision asks fewer, more useful questions (0.965) at the same success (0.882). Entropy-based *selection* is no better than asking a random unfilled slot (success 0.876 vs 0.876; first-rec. success 0.852 vs 0.834), an honest negative result: with only 3–5 slots, any required slot is informative. (4) I3 does not raise simulator success (Full − I3: 0.888 vs 0.876, within noise of one run), but it gives the highest faithfulness (0.998 vs 0.995), makes the agent refuse instead of inventing a match (58 refusals without clarification), and verifies 95.2 % of numeric claims; its cost is ~2.4 extra LLM calls (+$0.6 per 1,000 dialogues). (5) Thinking mode gives the lowest violation rate (0.332) at +33 % cost.
 
 ### 5.3 Qualitative examples
 
@@ -321,7 +326,7 @@ Sub-ablations of I1 and options (full agent with one component changed):
 ## Limitations
 
 - The knowledge base contains metadata but no reviews, so subjective aspects (comfort, fit) can only be supported when stated in the listing.
-- The same LLM family acts as agent, user simulator and judge; we calibrate the LLM judge against human labels (Section 4.5; κ = 0.846).
+- The same LLM family acts as agent, user simulator and judge; we calibrate the LLM judge against human labels (Section 4.5; κ = 0.853).
 - Evaluation scenarios were drafted with LLM assistance and then reviewed and labelled independently by humans; agreement is computed on the human labels only.
 - Human relevance labels cover only the pooled products (6 per scenario), so human retrieval metrics are computed on judged products and favour the configurations that built the pool.
 

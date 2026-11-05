@@ -148,6 +148,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--sheets", nargs="*")
     parser.add_argument("--no-review", action="store_true", help="忽略 review_<annotator>.xlsx（第一轮原始标签）")
+    parser.add_argument("--all", action="store_true", help="一致率包含重复记录（默认只统计去重后的记录，见 dedup.py）")
     args = parser.parse_args()
     paths = ([ANN_DIR / p for p in args.sheets] if args.sheets else sorted(ANN_DIR.glob("sheet_*.xlsx")))
     if len(paths) < 2:
@@ -165,6 +166,10 @@ def main():
 
     dec_ids = [json.loads(l)["record_id"] for l in open(ANN_DIR / "decisions.jsonl", encoding="utf-8")]
     rel_ids = [json.loads(l)["record_id"] for l in open(ANN_DIR / "pool.jsonl", encoding="utf-8")]
+    all_dec_ids, all_rel_ids = dec_ids, rel_ids          # 金标准对全部记录生成，便于对照
+    if not args.all:
+        import dedup
+        dec_ids, rel_ids = list(dedup.unique_decision_ids()), list(dedup.unique_relevance_ids())
 
     ask = {n: {i: v[0] for i, v in sheets[n][0].items()} for n in names}
     slot = {n: {i: v[1] for i, v in sheets[n][0].items() if v[0] == 1 and v[1]} for n in names}
@@ -185,10 +190,11 @@ def main():
     combined = {n: {**{i: ask[n].get(i) for i in dec_ids}, **{i: rel[n].get(i) for i in rel_ids}} for n in names}
     report["all_binary_records"] = agreement(combined, all_ids)
 
-    gold_ask, disp_a = gold_labels(ask, dec_ids, ANN_DIR / "adjudication_decisions.csv")
-    ask_ids = [i for i in dec_ids if str(gold_ask.get(i, ("", ""))[0]) == "1"]
+    report["deduplicated"] = not args.all
+    gold_ask, disp_a = gold_labels(ask, all_dec_ids, ANN_DIR / "adjudication_decisions.csv")
+    ask_ids = [i for i in all_dec_ids if str(gold_ask.get(i, ("", ""))[0]) == "1"]
     gold_slot, disp_s = gold_labels(slot, ask_ids, ANN_DIR / "adjudication_slots.csv")
-    gold_rel, disp_r = gold_labels(rel, rel_ids, ANN_DIR / "adjudication_relevance.csv")
+    gold_rel, disp_r = gold_labels(rel, all_rel_ids, ANN_DIR / "adjudication_relevance.csv")
     with open(ANN_DIR / "gold_decisions.csv", "w", newline="", encoding="utf-8-sig") as f:
         w = csv.writer(f)
         w.writerow(["record_id", "should_ask", "ask_about", "source"])

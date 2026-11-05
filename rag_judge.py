@@ -226,7 +226,9 @@ def dialogue_results(path, scenarios):
         final = r.get("final")
         if not final or not final.get("evidence"):
             continue
-        sc = scenarios[r["scenario_id"]]
+        sc = scenarios.get(r["scenario_id"])
+        if sc is None:                                     # 去重后不保留的场景
+            continue
         out.append({"case_id": r["scenario_id"],
                     "query": sc["full_query_zh"] if sc["language"] == "zh" else sc["full_query_en"],
                     "answer": final["answer"], "recommendations": final["recommendations"],
@@ -234,7 +236,7 @@ def dialogue_results(path, scenarios):
     return out
 
 
-def calibrate(workers=6):
+def calibrate(workers=6, rescore=False):
     """LLM 评审 vs 人工金标准：在 pooled 候选上比较上下文相关性判断。"""
     import csv
     from compute_iaa import cohen_kappa
@@ -242,7 +244,10 @@ def calibrate(workers=6):
     ann = EVAL_DIR / "annotation"
     gold = {r["record_id"]: int(float(r["relevant"]))
             for r in csv.DictReader(open(ann / "gold_relevance.csv", encoding="utf-8-sig"))}
+    import dedup
+    keep = set(dedup.unique_relevance_ids())
     pool = [json.loads(l) for l in open(ann / "pool.jsonl", encoding="utf-8")]
+    pool = [r for r in pool if r["record_id"] in keep]
     by_sc = {}
     for r in pool:
         by_sc.setdefault(r["scenario_id"], []).append(r)
@@ -258,10 +263,15 @@ def calibrate(workers=6):
                    for v in data.get("verdicts", []) if isinstance(v, dict)}
         return {r["record_id"]: verdict.get(f"E{i}") for i, r in enumerate(rows, start=1)}
 
-    with ThreadPoolExecutor(max_workers=workers) as executor:
-        judged = {}
-        for part in executor.map(judge_scenario, by_sc.values()):
-            judged.update(part)
+    judged = {}
+    if rescore:
+        for l in open(EVAL_DIR / "q5_runs" / "judge_calibration.jsonl", encoding="utf-8"):
+            row = json.loads(l)
+            judged[row["record_id"]] = row["judge"]
+    else:
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            for part in executor.map(judge_scenario, by_sc.values()):
+                judged.update(part)
     ids = [r["record_id"] for r in pool if judged.get(r["record_id"]) is not None and r["record_id"] in gold]
     prog = {r["record_id"]: int(r["programmatic_relevant"]) for r in pool}
 
@@ -275,7 +285,8 @@ def calibrate(workers=6):
     out = {"judge_model": judge_model(), "gold_positive_rate": sum(gold[i] for i in ids) / len(ids),
            "llm_judge_vs_human": compare(judged), "programmatic_vs_human": compare(prog)}
     (EVAL_DIR / "q5_runs" / "judge_calibration.json").write_text(json.dumps(out, indent=2))
-    with open(EVAL_DIR / "q5_runs" / "judge_calibration.jsonl", "w", encoding="utf-8") as f:
+    with open(EVAL_DIR / "q5_runs" / ("judge_calibration_unique.jsonl" if rescore else "judge_calibration.jsonl"),
+              "w", encoding="utf-8") as f:
         for i in ids:
             f.write(json.dumps({"record_id": i, "judge": judged[i], "human": gold[i], "programmatic": prog[i]}) + "\n")
     print(json.dumps(out, indent=2))
@@ -284,33 +295,44 @@ def calibrate(workers=6):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--calibrate", action="store_true", help="LLM 评审 vs 人工金标准（pooled 相关性）")
+    parser.add_argument("--rescore", action="store_true",
+                        help="不调用模型：用已有 judge_<config>.jsonl / judge_calibration.jsonl 在去重后的集合上重新汇总")
     parser.add_argument("--configs", nargs="+", default=["full"])
     parser.add_argument("--runs-dir", default=str(EVAL_DIR / "q5_runs"))
     parser.add_argument("--workers", type=int, default=6)
     parser.add_argument("--limit", type=int)
     args = parser.parse_args()
     if args.calibrate:
-        calibrate(args.workers)
+        calibrate(args.workers, rescore=args.rescore)
         return
 
     runs = Path(args.runs_dir)
+    import dedup
+    keep = set(dedup.unique_scenario_ids())
     scenarios = {json.loads(l)["scenario_id"]: json.loads(l)
-                 for l in open(EVAL_DIR / "scenarios" / "scenarios.jsonl", encoding="utf-8")}
+                 for l in open(EVAL_DIR / "scenarios" / "scenarios.jsonl", encoding="utf-8")
+                 if json.loads(l)["scenario_id"] in keep}
     embed(["warm up"])
     summary_path = runs / "judge_summary.json"
     summary = json.loads(summary_path.read_text()) if summary_path.exists() else {}
     for name in args.configs:
         results = dialogue_results(runs / f"{name}.jsonl", scenarios)
         results = results[:args.limit] if args.limit else results
-        with ThreadPoolExecutor(max_workers=args.workers) as executor:
-            judged = list(executor.map(judge_one, results))
+        if args.rescore:
+            old = {j["case_id"]: j for j in map(json.loads, open(runs / f"judge_{name}.jsonl", encoding="utf-8"))}
+            results = [r for r in results if r["case_id"] in old]
+            judged = [old[r["case_id"]] for r in results]
+        else:
+            with ThreadPoolExecutor(max_workers=args.workers) as executor:
+                judged = list(executor.map(judge_one, results))
         for res, j in zip(results, judged):
             rel = j.get("llm_context_relevance") or {}
             order = [e["parent_asin"] for e in res["evidence"]]
             j["context_precision"] = context_precision([rel.get(a, 0) for a in order]) if rel else None
-        with open(runs / f"judge_{name}.jsonl", "w", encoding="utf-8") as f:
-            for j in judged:
-                f.write(json.dumps(j, ensure_ascii=False) + "\n")
+        if not args.rescore:
+            with open(runs / f"judge_{name}.jsonl", "w", encoding="utf-8") as f:
+                for j in judged:
+                    f.write(json.dumps(j, ensure_ascii=False) + "\n")
         ok = [j for j in judged if not j.get("error")]
         mean = lambda key: (sum(j[key] for j in ok if j.get(key) is not None)
                             / max(1, sum(1 for j in ok if j.get(key) is not None)))

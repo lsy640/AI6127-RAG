@@ -1,20 +1,20 @@
 {
   "judge_model": "deepseek-flash",
-  "gold_positive_rate": 0.5370370370370371,
+  "gold_positive_rate": 0.5433925049309665,
   "llm_judge_vs_human": {
-    "items": 1080,
-    "agreement": 0.9231481481481482,
-    "cohen_kappa": 0.845979381443299,
-    "precision": 0.9477477477477477,
-    "recall": 0.906896551724138,
-    "positive_rate": 0.5138888888888888
+    "items": 1014,
+    "agreement": 0.9270216962524654,
+    "cohen_kappa": 0.8534916686517156,
+    "precision": 0.9508506616257089,
+    "recall": 0.9128856624319419,
+    "positive_rate": 0.5216962524654832
   },
   "programmatic_vs_human": {
-    "items": 1080,
-    "agreement": 0.8009259259259259,
-    "cohen_kappa": 0.607398890842689,
-    "precision": 0.9176201372997712,
-    "recall": 0.6913793103448276,
-    "positive_rate": 0.4046296296296296
+    "items": 1014,
+    "agreement": 0.7988165680473372,
+    "cohen_kappa": 0.604404683131318,
+    "precision": 0.9262899262899262,
+    "recall": 0.6842105263157895,
+    "positive_rate": 0.40138067061143984
   }
 }
