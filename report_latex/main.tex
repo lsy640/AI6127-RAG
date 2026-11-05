@@ -50,6 +50,7 @@
 \titlespacing*{\section}{0pt}{9pt plus 2pt}{4pt}
 \titlespacing*{\subsection}{0pt}{6pt plus 2pt}{3pt}
 \usepackage{microtype}
+\usepackage{ragged2e}
 \usepackage[hidelinks]{hyperref}
 \usepackage{xurl}
 \usepackage{xcolor}
@@ -103,8 +104,9 @@
 \end{tabular}\par}
 \vspace{1.2cm}
 
-\begin{minipage}{0.86\textwidth}
-\small\textbf{Abstract.} Shoppers rarely state a complete need in their first message. We build a retrieval-augmented assistant over 15,000 Amazon products that decides at every turn whether to ask a clarifying question or to recommend, and grounds every recommendation in retrieved evidence. Retrieval combines BM25 and bge-m3 dense search over field-level chunks with reciprocal rank fusion, metadata and date filters and a cross-encoder re-ranker (human-judged P@5 0.62 → 0.90). The downstream agent adds clarification, conversational query rewriting with constraint-to-filter mapping, and an evidence check with claim-level self-verification. On 169 unique simulated dialogues it reaches 0.876 success within five turns versus 0.586 without clarification, with LLM-judged faithfulness of 0.998. The evaluation set has 1,313 unique human-labelled records (three annotators, 95.8\,\% agreement).
+\begin{minipage}{0.9\textwidth}
+\large\linespread{1.15}\selectfont\justifying\noindent
+\textbf{Abstract.} Shoppers rarely state a complete need in their first message. We build a retrieval-augmented assistant over 15,000 Amazon products that decides at every turn whether to ask a clarifying question or to recommend, and grounds every recommendation in retrieved evidence. Retrieval combines BM25 and bge-m3 dense search over field-level chunks with reciprocal rank fusion, metadata and date filters and a cross-encoder re-ranker (human-judged P@5 0.62 → 0.90). The downstream agent adds clarification, conversational query rewriting with constraint-to-filter mapping, and an evidence check with claim-level self-verification. On 169 unique simulated dialogues it reaches 0.876 success within five turns versus 0.586 without clarification, with LLM-judged faithfulness of 0.998. The evaluation set has 1,313 unique human-labelled records (three annotators, 95.8\,\% agreement).
 \end{minipage}
 \vfill
 \end{titlepage}
