@@ -46,6 +46,11 @@
 \setlength{\textfloatsep}{8pt plus 2pt}
 \setlength{\floatsep}{6pt plus 2pt}
 \setlength{\dbltextfloatsep}{8pt plus 2pt}
+% float placement: allow large floats at the top of pages
+\renewcommand{\topfraction}{0.9}\renewcommand{\bottomfraction}{0.6}
+\renewcommand{\dbltopfraction}{0.92}\renewcommand{\textfraction}{0.05}
+\renewcommand{\floatpagefraction}{0.75}\renewcommand{\dblfloatpagefraction}{0.75}
+\setcounter{topnumber}{3}\setcounter{dbltopnumber}{2}\setcounter{totalnumber}{5}
 
 \begin{document}
 
@@ -97,7 +102,7 @@ A single message such as \emph{``I need some shoes''} says nothing about the typ
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=0.92\textwidth]{figures/fig_architecture.pdf}
+\includegraphics[width=\textwidth]{figures/fig_architecture.pdf}
 \caption{System architecture. Top: offline knowledge base (Q1). Middle and bottom: the pipeline executed at every dialogue turn; colours mark query understanding (I2), retrieval (Q2/Q3), clarification (I1) and grounding checks (I3).}
 \label{fig:arch}
 \end{figure*}
@@ -112,7 +117,7 @@ A single message such as \emph{``I need some shoes''} says nothing about the typ
 
 \textbf{Application.} Users chat in English or Chinese; the system asks follow-up questions and recommends products with grounded reasons (Fig.~\ref{fig:ui}). Table~\ref{tab:corpus} gives the corpus statistics.
 
-\begin{table}[h]
+\begin{table}[!htb]
 \centering\small
 \caption{Corpus statistics.}
 \label{tab:corpus}
@@ -136,7 +141,7 @@ Words/product (mean/median/max) & 239 / 203 / 2,040\\
 
 \textbf{Query speed.} Table~\ref{tab:speed} lists five queries (Apple M5, warm, median of 10 runs). Query encoding dominates; with cross-encoder re-ranking of the top-20 products the mean latency rises to 0.69\,s.
 
-\begin{table}[h]
+\begin{table}[!htb]
 \centering\small
 \caption{Latency of five queries (ms).}
 \label{tab:speed}
@@ -156,8 +161,8 @@ soft queen size bed sheets & 0.2 & 16.4 & 1.6 & 18.2\\
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=0.66\textwidth]{figures/fig_ui.png}
-\caption{User interface after a four-turn dialogue: ``I'm looking for some shoes'' → the agent asks for the type, the wearer and the budget → three women's running shoes under \$80 with price, rating, reason and evidence ID. Right: tracked need and retrieved evidence.}
+\includegraphics[width=0.74\textwidth]{figures/fig_ui.png}
+\caption{The Gradio interface. Left: for ``I'm looking for some shoes'' the agent asks for the type, the wearer and the budget, then recommends three women's running shoes under \$80, each with price, rating, a reason and its evidence ID. Right: the tracked need (dialogue state) and the cited evidence passages.}
 \label{fig:ui}
 \end{figure*}
 
@@ -200,9 +205,9 @@ Chinese query, LLM-translated → RRF + re-ranking & 0.496 & 0.233 & 0.647 & 0.4
 
 \textbf{(5) Chunking and indexing.} On need-style queries the product-level index is slightly better than field-level chunks (P@5 0.715 vs.\ 0.698), because type, audience and budget appear in every title and category path; chunks remain useful as citable evidence. Removing the BGE instruction prefix from documents (wrongly applied to both sides in our first version) was required for a valid index.
 
-\begin{figure}[t]
+\begin{figure}[!htb]
 \centering
-\includegraphics[width=\columnwidth]{figures/fig_retrieval.png}
+\includegraphics[width=\columnwidth]{figures/fig_retrieval.pdf}
 \caption{Precision@5 of the main configurations under programmatic and human relevance judgments.}
 \label{fig:retrieval}
 \end{figure}
@@ -217,7 +222,7 @@ We use a retrieval-augmented LLM rather than a trained recommender: LLMs are str
 \subsection{Evaluation dataset}\label{sec:data}
 Each scenario has a hidden complete need (product type; audience, child age or material; budget) anchored on a real product and solvable by at least three catalogue products, and an opening message at one of three specificity levels, in English or Chinese. We label (i)~\emph{decision} records: for a dialogue snapshot, should the agent ask or recommend, and which attribute to ask about; and (ii)~\emph{relevance} records: does a pooled candidate (6 per scenario, from 7 retrieval configurations) satisfy the need. Of 180 generated scenarios, duplicates of an earlier need or dialogue are removed, leaving 169 scenarios, 299 decision and 1,014 relevance records (\textbf{1,313 unique records}; 68\,\%/32\,\% ask/recommend, 54\,\% relevant). Three group members labelled all records independently following written guidelines; the gold label is the majority vote. After one round of guideline clarification, in which one annotator re-checked the items labelled ``wrong product type'' (relevance agreement 79.9\,\% → 94.9\,\%; gold labels unchanged), agreement is high (Table~\ref{tab:iaa}).
 
-\begin{table}[h]
+\begin{table}[!htb]
 \centering\small
 \caption{Inter-annotator agreement (mean pairwise).}
 \label{tab:iaa}
@@ -236,7 +241,7 @@ Product satisfies the need & 1,014 & 94.9\,\% & 0.897\\
 \subsection{Task metrics}
 \textbf{Clarification decision} (positive class = ask). The annotators followed the guideline ``ask if a required attribute is missing'', so the rule-based decision matches the gold on all snapshots; the learned criteria are compared in Table~\ref{tab:decision}. The entropy criterion never misses a needed question but over-asks in 50 of 95 recommend snapshots; LLM judgement misses 29\,\% of needed questions, and thinking mode recovers part of them. The attribute chosen to ask about matches the annotators only 52–58\,\% of the time, because the agent asks about the attribute that best splits the candidates rather than following the fixed priority type → audience/age → budget.
 
-\begin{table}[h]
+\begin{table}[!htb]
 \centering\small
 \caption{Ask/recommend decision against human gold (299 snapshots). The rule matches by construction, since the guidelines encode it.}
 \label{tab:decision}
@@ -298,7 +303,7 @@ Full + DeepSeek thinking mode & \textbf{0.893} & \textbf{0.864} & 3.33 & 2.13 & 
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=0.9\textwidth]{figures/fig_ablation.png}
+\includegraphics[width=\textwidth]{figures/fig_ablation.pdf}
 \caption{Ablation of the downstream innovations: dialogue success (left) and constraint violations (right).}
 \label{fig:ablation}
 \end{figure*}

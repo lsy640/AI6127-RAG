@@ -82,7 +82,7 @@ Gradio chat interface (`app.py`): the user types a message; the assistant either
 
 ![Gradio user interface](eval/figures/fig_ui.png)
 
-*Figure 2. The Gradio interface after a four-turn dialogue ("I'm looking for some shoes." → the agent asks for the type, the audience and the budget → three women's running shoes under $80, each with price, rating, reason and evidence ID). Right: tracked need and the retrieved evidence passages.*
+*Figure 2. The Gradio interface. Left: for "I'm looking for some shoes." the agent asks for the type, the wearer and the budget, then recommends three women's running shoes under $80, each with price, rating, reason and evidence ID. Right: the tracked need (dialogue state) and the cited evidence passages.*
 
 ### 2.3 Five queries and query speed (`eval/q2_benchmark/`)
 
