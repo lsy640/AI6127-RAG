@@ -87,11 +87,11 @@
 \toprule
  & \textbf{Name} & \textbf{Matriculation No.}\\
 \midrule
-1 & {[Member 1 name]} & {[U0000000A]}\\
-2 & {[Member 2 name]} & {[U0000000A]}\\
-3 & {[Member 3 name]} & {[U0000000A]}\\
-4 & {[Member 4 name]} & {[U0000000A]}\\
-5 & {[Member 5 name]} & {[U0000000A]}\\
+1 & {LIU SHIYUAN} & {G2509682L}\\
+2 & {LIU YIMING} & {G2603281F}\\
+3 & {CHEN CANYING} & {G2602383K}\\
+4 & {LI XUANJUN} & {U0000000A}\\
+5 & {ZHAO HANNING} & {G2510146G}\\
 \bottomrule
 \end{tabular}\par}
 \vspace{1.2cm}
@@ -334,7 +334,7 @@ Full + DeepSeek thinking mode & \textbf{0.893} & \textbf{0.864} & 3.33 & 2.13 & 
 
 % =====================================================================
 \section{Limitations}
-The catalogue contains metadata but no reviews, so subjective aspects (comfort, fit) are supported only when stated in a listing. The same LLM family acts as agent, simulator and judge; we calibrate the judge against human labels. Human relevance labels cover only pooled products, so human retrieval metrics are computed on judged products. Each configuration was run once, so small differences (around $\pm$0.01) are not significant.
+The catalogue contains metadata but no reviews, so subjective aspects (comfort, fit) are supported only when stated in a listing. Chinese input is served entirely through translation: because the catalogue is English and BM25 cannot match across languages, native Chinese retrieval is weak (P@5 0.151 with dense retrieval, 0.075 with RRF), and the good Chinese results (0.496) depend on first translating the request into English with an LLM. The Chinese pipeline therefore inherits translation errors (e.g.\ ambiguous product terms or units) and an extra LLM call per turn; native support would require a multilingual catalogue or a Chinese-aware lexical index. The same LLM family acts as agent, simulator and judge; we calibrate the judge against human labels. Human relevance labels cover only pooled products, so human retrieval metrics are computed on judged products. Each configuration was run once, so small differences (around $\pm$0.01) are not significant.
 
 % =====================================================================
 \footnotesize

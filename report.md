@@ -326,6 +326,7 @@ Sub-ablations of I1 and options (full agent with one component changed):
 ## Limitations
 
 - The knowledge base contains metadata but no reviews, so subjective aspects (comfort, fit) can only be supported when stated in the listing.
+- Chinese input is served entirely through translation. The catalogue is English and BM25 cannot match across languages, so native Chinese retrieval is weak (P@5 0.151 dense, 0.075 RRF); the good Chinese results (0.496) depend on an LLM first translating the request into English. The Chinese pipeline therefore inherits translation errors and costs an extra LLM call per turn; native support would need a multilingual catalogue or a Chinese-aware lexical index.
 - The same LLM family acts as agent, user simulator and judge; we calibrate the LLM judge against human labels (Section 4.5; κ = 0.853).
 - Evaluation scenarios were drafted with LLM assistance and then reviewed and labelled independently by humans; agreement is computed on the human labels only.
 - Human relevance labels cover only the pooled products (6 per scenario), so human retrieval metrics are computed on judged products and favour the configurations that built the pool.
