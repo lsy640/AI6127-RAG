@@ -4,12 +4,7 @@
     "B",
     "C"
   ],
-  "review": {
-    "C": {
-      "reviewed": 243,
-      "changed": 243
-    }
-  },
+  "review": {},
   "records": {
     "decisions": 360,
     "relevance": 1080,
