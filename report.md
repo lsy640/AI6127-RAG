@@ -1,6 +1,6 @@
 # AI6127 Group Assignment — Conversational RAG Product Recommender
 
-**Group:** TBD  
+**Group:** 20  
 **Members (name / matriculation no.):** TBD  
 **Knowledge base, queries, results and evaluation data (zip):** TBD (Google Drive / OneDrive link)  
 **Source code and README (zip):** TBD (link) — repository: https://github.com/lsy640/AI6127-RAG
