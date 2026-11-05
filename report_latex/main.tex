@@ -14,9 +14,12 @@
   \usepackage[T1]{fontenc}
   \IfFileExists{newtxtext.sty}{\usepackage{newtxtext}}{\usepackage{times}}
   % Chinese snippets in examples (\zh{...})
-  \IfFileExists{CJKutf8.sty}
-    {\usepackage{CJKutf8}\newcommand{\zh}[1]{\begin{CJK}{UTF8}{gbsn}#1\end{CJK}}}
-    {\newcommand{\zh}[1]{[Chinese text]}}
+  \IfFileExists{CJKutf8.sty}{\usepackage{CJKutf8}\def\haveCJK{}}{}
+  \ifdefined\haveCJK
+    \newcommand{\zh}[1]{\begin{CJK}{UTF8}{gbsn}#1\end{CJK}}
+  \else
+    \newcommand{\zh}[1]{[Chinese text]}
+  \fi
 \else
   % ---- XeLaTeX / LuaLaTeX ----
   \usepackage{fontspec}
