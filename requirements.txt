@@ -8,3 +8,4 @@ gradio
 requests
 openai
 openpyxl
+matplotlib       # report figures (eval/figures/charts.py)
