@@ -45,7 +45,7 @@ AI6127/
 ├── app.py                  # Gradio 多轮对话界面
 ├── dedup.py                # Q4：评测集去重（所有评测脚本只在去重后的集合上计算指标）
 ├── report.md               # 作业报告（英文）
-├── report_latex/           # LaTeX 版报告（双栏论文格式，main.tex + figures/，用 XeLaTeX 编译，可直接上传 Overleaf）
+├── report_latex/           # LaTeX 版报告（双栏论文格式，main.tex + figures/，pdfLaTeX 或 XeLaTeX 均可编译，可直接上传 Overleaf）
 ├── eval/
 │   ├── scenarios/          # 评测场景（隐藏需求、开场白、对话快照）
 │   ├── annotation/         # 标注记录、标注表、标注指南、金标准、一致率报告

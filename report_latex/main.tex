@@ -1,22 +1,32 @@
 % =====================================================================
 %  AI6127 Group Assignment — Group 20
 %  Conversational RAG Product Recommender (two-column paper format)
-%  Compile with XeLaTeX (Overleaf: Menu -> Compiler -> XeLaTeX), twice.
+%  Compiles with pdfLaTeX (Overleaf default) or XeLaTeX; run twice.
 %  Fill in the [placeholders] in the title block below.
 % =====================================================================
 \documentclass[10pt,a4paper,twocolumn]{article}
 
 \usepackage[a4paper,top=2cm,bottom=2.2cm,left=1.7cm,right=1.7cm,columnsep=0.6cm]{geometry}
-\usepackage{fontspec}
-\IfFontExistsTF{TeX Gyre Termes}{\setmainfont{TeX Gyre Termes}}{}
-\IfFontExistsTF{TeX Gyre Heros}{\setsansfont{TeX Gyre Heros}}{}
-% Chinese snippets in examples (\zh{...})
-\IfFontExistsTF{Noto Serif CJK SC}
-  {\newfontfamily\zhfont{Noto Serif CJK SC}}
-  {\IfFontExistsTF{FandolSong-Regular.otf}
-     {\newfontfamily\zhfont{FandolSong-Regular.otf}}
-     {\newfontfamily\zhfont{Songti SC}}}
-\newcommand{\zh}[1]{{\zhfont #1}}
+\usepackage{iftex}
+\ifPDFTeX
+  % ---- pdfLaTeX (Overleaf default) ----
+  \usepackage[utf8]{inputenc}
+  \usepackage[T1]{fontenc}
+  \IfFileExists{newtxtext.sty}{\usepackage{newtxtext}}{\usepackage{times}}
+  % Chinese snippets in examples (\zh{...})
+  \IfFileExists{CJKutf8.sty}
+    {\usepackage{CJKutf8}\newcommand{\zh}[1]{\begin{CJK}{UTF8}{gbsn}#1\end{CJK}}}
+    {\newcommand{\zh}[1]{[Chinese text]}}
+\else
+  % ---- XeLaTeX / LuaLaTeX ----
+  \usepackage{fontspec}
+  \IfFontExistsTF{TeX Gyre Termes}{\setmainfont{TeX Gyre Termes}}{}
+  \IfFontExistsTF{TeX Gyre Heros}{\setsansfont{TeX Gyre Heros}}{}
+  \IfFontExistsTF{Noto Serif CJK SC}
+    {\newfontfamily\zhfont{Noto Serif CJK SC}}
+    {\newfontfamily\zhfont{FandolSong-Regular.otf}}
+  \newcommand{\zh}[1]{{\zhfont #1}}
+\fi
 \usepackage{newunicodechar}
 \newunicodechar{κ}{\ensuremath{\kappa}}
 \newunicodechar{→}{\ensuremath{\rightarrow}}

@@ -45,7 +45,7 @@ AI6127/
 ├── dedup.py                # Q4: de-duplication of the evaluation set (all metrics use the unique set)
 ├── app.py                  # Gradio multi-turn chat interface
 ├── report.md               # assignment report (English)
-├── report_latex/           # LaTeX report (two-column paper; main.tex + figures/; compile with XeLaTeX, ready for Overleaf)
+├── report_latex/           # LaTeX report (two-column paper; main.tex + figures/; compiles with pdfLaTeX or XeLaTeX, ready for Overleaf)
 ├── eval/
 │   ├── scenarios/          # evaluation scenarios (hidden need, opening message, dialogue snapshots)
 │   ├── annotation/         # annotation records, sheets, guidelines, gold labels, agreement report
