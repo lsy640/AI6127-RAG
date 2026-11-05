@@ -20,9 +20,9 @@ Per-turn pipeline:
 5. **Evidence check** — verify that candidates satisfy the hard constraints; relax filters and retrieve again if needed.
 6. **Grounded generation + self-check** — JSON answer with product IDs and evidence IDs; unsupported claims are flagged and removed.
 
-![System architecture](eval/figures/fig_architecture.png)
+![System architecture](eval/figures/fig_architecture.svg)
 
-*Figure 1. System architecture. Blue: retrieval (Q2/Q3); orange: clarification (I1); I2/I3 mark the other downstream innovations (Section 5).*
+*Figure 1. System architecture. Top: offline knowledge base; middle and bottom: the pipeline run at every dialogue turn. Colours mark query understanding (I2), retrieval (Q2/Q3), clarification (I1) and grounding checks (I3).*
 
 ---
 

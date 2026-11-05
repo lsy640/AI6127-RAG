@@ -304,6 +304,6 @@ python run_dialogues.py --configs clarify-rule clarify-llm select-llm select-ran
 - **索引一致性**：`hybrid_retriever.py` 会检查索引说明文件（`data/faiss_<unit>[_prompt].json`）中的模型、检索单元、是否加前缀与当前配置一致，不一致直接报错，避免建索引与查询编码方式不同。
 - **断点续编**：`build_faiss.py` 按片编码，每 4 片保存一次断点（`*.partial.npz`），中断后重跑会接着编码；Apple Silicon 上每片后释放 MPS 缓存，避免显存持续增长导致 OOM。
 - **评测集**：生成 1,440 条、去重后 1,313 条（`dedup.py`），标注结果在 `eval/annotation/sheet_A/B/C.xlsx`。修改标注后依次运行 `compute_iaa.py`、`evaluate_decisions.py --rescore`、`eval_retrieval.py --rescore`、`rag_judge.py --calibrate --rescore`，人工标签指标会自动写入各自的汇总文件。
-- **报告插图**：`eval/figures/`；结果图由 `eval/figures/charts.py` 生成，架构图源文件为 `arch.dot`（`dot -Tpng -Gdpi=200 arch.dot -o fig_architecture.png`）。
+- **报告插图**：`eval/figures/`；结果图由 `eval/figures/charts.py` 生成，架构图 `fig_architecture.svg` 由 `eval/figures/arch_svg.py` 生成。
 - **API Key**：只放在本地环境变量（如 `~/.zshrc`），不要提交到仓库。
 - **HF Hub 警告说明**：终端若出现关于未认证 Hugging Face Hub Token 的警告，仅为请求速率限制提醒，不影响演示系统的正常运行。
