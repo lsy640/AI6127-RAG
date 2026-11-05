@@ -4,6 +4,12 @@
     "B",
     "C"
   ],
+  "review": {
+    "C": {
+      "reviewed": 243,
+      "changed": 243
+    }
+  },
   "records": {
     "decisions": 360,
     "relevance": 1080,
@@ -80,20 +86,20 @@
       },
       "A-C": {
         "items": 1080,
-        "percent_agreement": 0.712037037037037,
-        "cohen_kappa": 0.43991995997998995
+        "percent_agreement": 0.937037037037037,
+        "cohen_kappa": 0.871825750039269
       },
       "B-C": {
         "items": 1080,
-        "percent_agreement": 0.7092592592592593,
-        "cohen_kappa": 0.42793522267206485
+        "percent_agreement": 0.9342592592592592,
+        "cohen_kappa": 0.8671628139032097
       }
     },
-    "mean_percent_agreement": 0.7969135802469136,
-    "mean_cohen_kappa": 0.6021243285259357,
+    "mean_percent_agreement": 0.9469135802469135,
+    "mean_cohen_kappa": 0.8925021222894104,
     "items_labelled_by_all": 1080,
-    "fleiss_kappa": 0.5932119563537522,
-    "meets_80_percent": false
+    "fleiss_kappa": 0.8925000000000035,
+    "meets_80_percent": true
   },
   "all_binary_records": {
     "pairwise": {
@@ -104,19 +110,19 @@
       },
       "A-C": {
         "items": 1440,
-        "percent_agreement": 0.7798611111111111,
-        "cohen_kappa": 0.5670532533603451
+        "percent_agreement": 0.9486111111111111,
+        "cohen_kappa": 0.8923329675725812
       },
       "B-C": {
         "items": 1440,
-        "percent_agreement": 0.7777777777777778,
-        "cohen_kappa": 0.5616938705627212
+        "percent_agreement": 0.9465277777777777,
+        "cohen_kappa": 0.8888822079249593
       }
     },
-    "mean_percent_agreement": 0.8449074074074074,
-    "mean_cohen_kappa": 0.693860914450856,
+    "mean_percent_agreement": 0.9574074074074074,
+    "mean_cohen_kappa": 0.9113502649756806,
     "items_labelled_by_all": 1440,
-    "fleiss_kappa": 0.6877178740733997,
+    "fleiss_kappa": 0.9114675220529228,
     "meets_80_percent": true
   },
   "gold": {

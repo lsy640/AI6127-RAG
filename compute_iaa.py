@@ -7,6 +7,9 @@ Q4：标注一致性（IAA）与金标准
 对三种标签分别报告：两两一致率、Cohen's κ、Fleiss' κ（≥3 人）。
 金标准：≥3 人多数票；2 人时取一致的标签，分歧写入 adjudication_*.csv，
 填好 final_label 后再次运行即可合并。
+复查：若存在 review_<annotator>.xlsx（标注者按指南复查自己的部分 relevance 标签，
+列 record_id 与 revised relevant (1/0)），其标签覆盖该标注者的原标签；
+不加 --no-review 时报告的是复查后的一致率。
 
 输出：iaa_report.json、gold_decisions.csv、gold_relevance.csv、adjudication_decisions.csv、
       adjudication_relevance.csv
@@ -32,6 +35,15 @@ SLOT_CODES = {"product type": "product_type", "who it is for": "audience", "chil
 def parse_binary(v):
     t = "" if v is None else str(v).strip().lower()
     return 1 if t in {"1", "1.0", "true", "yes", "y"} else 0 if t in {"0", "0.0", "false", "no", "n"} else None
+
+
+def load_review(path):
+    """复查表：record_id → 修正后的 relevant（按表头定位列）。"""
+    ws = load_workbook(path, read_only=True)["review"]
+    rows = ws.iter_rows(values_only=True)
+    header = [str(h or "").strip().lower() for h in next(rows)]
+    col = next(i for i, h in enumerate(header) if h.startswith("revised"))
+    return {str(r[0]): parse_binary(r[col]) for r in rows if r and r[0] and parse_binary(r[col]) is not None}
 
 
 def load_sheet(path):
@@ -135,12 +147,21 @@ def gold_labels(labels_by_ann, ids, adjudication_file):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--sheets", nargs="*")
+    parser.add_argument("--no-review", action="store_true", help="忽略 review_<annotator>.xlsx（第一轮原始标签）")
     args = parser.parse_args()
     paths = ([ANN_DIR / p for p in args.sheets] if args.sheets else sorted(ANN_DIR.glob("sheet_*.xlsx")))
     if len(paths) < 2:
         raise SystemExit("Need at least two annotator sheets.")
     names = [p.stem.replace("sheet_", "") for p in paths]
     sheets = {n: load_sheet(p) for n, p in zip(names, paths)}
+    reviewed = {}
+    for n in names:
+        review_path = ANN_DIR / f"review_{n}.xlsx"
+        if review_path.exists() and not args.no_review:
+            rev = load_review(review_path)
+            changed = sum(1 for i, v in rev.items() if sheets[n][1].get(i) != v)
+            sheets[n][1].update(rev)
+            reviewed[n] = {"reviewed": len(rev), "changed": changed}
 
     dec_ids = [json.loads(l)["record_id"] for l in open(ANN_DIR / "decisions.jsonl", encoding="utf-8")]
     rel_ids = [json.loads(l)["record_id"] for l in open(ANN_DIR / "pool.jsonl", encoding="utf-8")]
@@ -151,6 +172,7 @@ def main():
 
     report = {
         "annotators": names,
+        "review": reviewed,
         "records": {"decisions": len(dec_ids), "relevance": len(rel_ids),
                     "total": len(dec_ids) + len(rel_ids)},
         "labelled_per_annotator": {n: {"decisions": sum(v is not None for v in ask[n].values()),

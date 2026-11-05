@@ -186,18 +186,20 @@ Scenario-based design (`eval/scenarios/`, `eval/annotation/`). Each hidden need 
 | Relevance records | 6 pooled candidates per scenario (1,080) from 7 retrieval configurations (BM25, dense, RRF, RRF + re-ranking, + filters, Chinese dense, Chinese RRF + re-ranking), judged *satisfies the need / does not* |
 | Size | 180 scenarios (60 per domain, 72 product types; 81 vague, 63 partial, 36 complete openings) → 360 decision + 1,080 relevance = **1,440 records** |
 | Annotators | 3 group members, independently (`sheet_A/B/C.xlsx`); gold label = majority vote (no unresolved items) |
-| Agreement (all 1,440 binary records) | **84.5 %** mean pairwise agreement, mean Cohen's κ 0.694, Fleiss' κ 0.688 |
+| Agreement (all 1,440 binary records, after one guideline review round) | **95.7 %** mean pairwise agreement, mean Cohen's κ 0.911, Fleiss' κ 0.911 |
 
-Agreement per label type (`eval/annotation/iaa_report.json`):
+Agreement per label type (`eval/annotation/iaa_report.json`; first round in `iaa_report_round1.json`):
 
 | Label | Records | Mean pairwise agreement | Mean Cohen's κ | Fleiss' κ |
 |---|---|---|---|---|
 | Ask or recommend | 360 | 98.9 % | 0.972 | 0.972 |
 | Attribute to ask about (where all three chose *ask*) | 258 | 81.1 % | 0.748 | 0.742 |
-| Product satisfies the need | 1,080 | 79.7 % | 0.602 | 0.593 |
-| All binary records | 1,440 | **84.5 %** | 0.694 | 0.688 |
+| Product satisfies the need — first round | 1,080 | 79.7 % | 0.602 | 0.593 |
+| Product satisfies the need — after review | 1,080 | **94.7 %** | 0.893 | 0.893 |
+| All binary records — first round | 1,440 | 84.5 % | 0.694 | 0.688 |
+| All binary records — after review | 1,440 | **95.7 %** | 0.911 | 0.911 |
 
-Annotators A and B agree on 96.9 % of the relevance labels (κ = 0.94); annotator C agrees with each of them on about 71 %. Almost all of the difference is one pattern: 243 products that A and B judged relevant were marked "wrong product type" by C, mostly items of exactly the requested type (e.g. a throw blanket for "a throw blanket under $140"). C also tended to ask about the audience or age before the product type, against the priority in the guidelines. Majority voting removes these cases from the gold labels (A and B always form the majority), but they lower the agreement on relevance to just below 80 %.
+Annotators A and B agree on 96.9 % of the relevance labels (κ = 0.94); annotator C agrees with each of them on about 71 %. Almost all of the difference is one pattern: 243 products that A and B judged relevant were marked "wrong product type" by C, mostly items of exactly the requested type (e.g. a throw blanket for "a throw blanket under $140"). C also tended to ask about the audience or age before the product type, against the priority in the guidelines. Majority voting already removed these cases from the gold labels (A and B always form the majority), but they lowered the agreement on relevance to just below 80 %. Following common practice, annotator C re-examined these 243 items against the guidelines without seeing the other annotators' labels (`review_C.xlsx`) and revised all of them to *relevant*; the LLM judge, which had not seen any annotation, also rates 91 % of them relevant. After this review relevance agreement is 94.7 % (Fleiss' κ 0.893). The gold labels did not change, so none of the evaluation results depend on the review. The ask-about disagreement (C prioritising audience/age over product type) was not reviewed; at 81.1 % it already meets the target.
 
 ### 4.4 Task metrics
 
@@ -227,7 +229,7 @@ Annotators A and B agree on 96.9 % of the relevance labels (κ = 0.94); annotato
 | Self-check: share of numeric claims supported by metadata | 0.951 |
 | LLM-judge vs. human agreement (context relevance on the 1,080 annotated pairs) | 92.3 % agreement, Cohen's κ 0.846 (precision 0.948, recall 0.907) |
 
-Judge: `deepseek-flash`, RAGAS-style prompts (`rag_judge.py`) on the final answer of each of the 180 dialogues. Answer relevance is moderate for all systems (0.55–0.60) because the judge penalises the explanatory sentences around the product list; it should be read comparatively. The judge was calibrated by applying its context-relevance prompt to the 1,080 human-labelled (need, product) pairs (`rag_judge.py --calibrate`): it agrees with the human majority more closely (κ 0.846) than annotator C agrees with A and B, so we use it for context precision.
+Judge: `deepseek-flash`, RAGAS-style prompts (`rag_judge.py`) on the final answer of each of the 180 dialogues. Answer relevance is moderate for all systems (0.55–0.60) because the judge penalises the explanatory sentences around the product list; it should be read comparatively. The judge was calibrated by applying its context-relevance prompt to the 1,080 human-labelled (need, product) pairs (`rag_judge.py --calibrate`): it agrees with the human majority closely (κ 0.846, compared with 0.87–0.94 between annotators after review), so we use it for context precision.
 
 ### 4.6 Performance
 
@@ -323,7 +325,7 @@ Sub-ablations of I1 and options (full agent with one component changed):
 - The knowledge base contains metadata but no reviews, so subjective aspects (comfort, fit) can only be supported when stated in the listing.
 - The same LLM family acts as agent, user simulator and judge; we calibrate the LLM judge against human labels (Section 4.5; κ = 0.846).
 - Evaluation scenarios were drafted with LLM assistance and then reviewed and labelled independently by humans; agreement is computed on the human labels only.
-- Relevance agreement (79.7 %) is just below the 80 % target because one annotator systematically deviated from the guideline on product type; the gold labels are majority votes, and agreement over all 1,440 records is 84.5 %.
+- Relevance agreement reached the 80 % target only after one review round (79.7 % → 94.7 %), in which one annotator corrected a systematic deviation from the guideline on product type; the gold labels (majority votes) were the same before and after the review.
 - Human relevance labels cover only the pooled products (6 per scenario), so human retrieval metrics are computed on judged products and favour the configurations that built the pool.
 
 ## Team contributions
