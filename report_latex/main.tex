@@ -49,32 +49,47 @@
 
 \begin{document}
 
-% ============================ TITLE BLOCK =============================
-\twocolumn[{%
-\begin{center}
-{\small AI6127 Deep Neural Networks for Natural Language Processing — Group Assignment 2026}\\[6pt]
-{\LARGE\bfseries A Conversational RAG Product Recommender\\[2pt] that Asks Before It Recommends}\\[8pt]
-{\large\bfseries Group 20}\\[6pt]
-\begin{tabular}{@{}l l @{\hspace{2.2em}} l l@{}}
-\toprule
-\textbf{Name} & \textbf{Matric. No.} & \textbf{Name} & \textbf{Matric. No.}\\
-\midrule
-{[Member 1 name]} & {[U0000000A]} & {[Member 4 name]} & {[U0000000A]}\\
-{[Member 2 name]} & {[U0000000A]} & {[Member 5 name]} & {[U0000000A]}\\
-{[Member 3 name]} & {[U0000000A]} & & \\
-\bottomrule
-\end{tabular}\\[8pt]
-\begin{tabular}{@{}r l@{}}
-\textbf{Data} (knowledge base, queries, results, evaluation set): & \textit{[link to the data zip — replace with} \texttt{\textbackslash url\{...\}}\textit{]}\\
-\textbf{Code} (source, libraries, README): & \textit{[link to the code zip — replace with} \texttt{\textbackslash url\{...\}}\textit{]}\\
-\textbf{Repository:} & \url{https://github.com/lsy640/AI6127-RAG}\\
-\end{tabular}
-\end{center}
-\begin{quote}\small
-\textbf{Abstract.} Shoppers rarely state a complete need in their first message. We build a retrieval-augmented assistant over 15,000 Amazon products that decides at every turn whether to ask a clarifying question or to recommend, and grounds every recommendation in retrieved evidence. Retrieval combines BM25 and bge-m3 dense search over field-level chunks with reciprocal rank fusion, metadata and date filters and a cross-encoder re-ranker (human-judged P@5 0.62 → 0.90). The downstream agent adds clarification, conversational query rewriting with constraint-to-filter mapping, and an evidence check with claim-level self-verification. On 169 unique simulated dialogues it reaches 0.876 success within five turns versus 0.586 without clarification, with LLM-judged faithfulness of 0.998. The evaluation set has 1,313 unique human-labelled records (three annotators, 95.8\,\% agreement).
-\end{quote}
+% ============================ TITLE PAGE ==============================
+\begin{titlepage}
+\centering
+\vspace*{0.8cm}
+{\large AI6127 Deep Neural Networks for Natural Language Processing\par}
 \vspace{4pt}
-}]
+{\large Group Assignment 2026\par}
+\vspace{1.6cm}
+{\fontsize{24}{30}\selectfont\bfseries A Conversational RAG Product Recommender\\[4pt] that Asks Before It Recommends\par}
+\vspace{1.3cm}
+{\LARGE\bfseries Group 20\par}
+\vspace{1.0cm}
+
+{\large
+\renewcommand{\arraystretch}{1.55}
+\begin{tabular}{@{}c p{7.2cm} p{4.2cm}@{}}
+\toprule
+ & \textbf{Name} & \textbf{Matriculation No.}\\
+\midrule
+1 & {[Member 1 name]} & {[U0000000A]}\\
+2 & {[Member 2 name]} & {[U0000000A]}\\
+3 & {[Member 3 name]} & {[U0000000A]}\\
+4 & {[Member 4 name]} & {[U0000000A]}\\
+5 & {[Member 5 name]} & {[U0000000A]}\\
+\bottomrule
+\end{tabular}\par}
+\vspace{1.2cm}
+
+{\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{5.6cm} >{\raggedright\arraybackslash}p{9.4cm}@{}}
+\textbf{Data} (knowledge base, queries, retrieved results, evaluation dataset, generated answers): & \textit{[link to the data zip — replace with} \texttt{\textbackslash url\{...\}}\textit{]}\\
+\textbf{Code} (source code, libraries, README): & \textit{[link to the code zip — replace with} \texttt{\textbackslash url\{...\}}\textit{]}\\
+\textbf{Repository:} & \url{https://github.com/lsy640/AI6127-RAG}\\
+\end{tabular}\par}
+\vspace{1.2cm}
+
+\begin{minipage}{0.86\textwidth}
+\small\textbf{Abstract.} Shoppers rarely state a complete need in their first message. We build a retrieval-augmented assistant over 15,000 Amazon products that decides at every turn whether to ask a clarifying question or to recommend, and grounds every recommendation in retrieved evidence. Retrieval combines BM25 and bge-m3 dense search over field-level chunks with reciprocal rank fusion, metadata and date filters and a cross-encoder re-ranker (human-judged P@5 0.62 → 0.90). The downstream agent adds clarification, conversational query rewriting with constraint-to-filter mapping, and an evidence check with claim-level self-verification. On 169 unique simulated dialogues it reaches 0.876 success within five turns versus 0.586 without clarification, with LLM-judged faithfulness of 0.998. The evaluation set has 1,313 unique human-labelled records (three annotators, 95.8\,\% agreement).
+\end{minipage}
+\vfill
+\end{titlepage}
 
 % =====================================================================
 \section{System Overview}
