@@ -1,310 +1,313 @@
-# AI6127 课程作业（Amazon 2023 商品数据集）
+# AI6127 Group Assignment: Conversational RAG Product Recommender (Amazon Reviews 2023)
 
-**NTU AI6127 | 混合检索增强生成系统（Hybrid RAG System）**
+**English** | [中文](README_zh.md)
 
-- **数据集**：McAuley-Lab Amazon Reviews 2023（`meta_Clothing_Shoes_and_Jewelry` / `meta_Home_and_Kitchen` / `meta_Toys_and_Games`）
-- **核心实现**：字段级切块 + 稀疏检索（BM25）+ 稠密检索（bge-m3 / FAISS）+ 父文档合并 + 倒数秩融合（RRF）+ 交叉编码器重排序 + 元数据/时间过滤 + 多轮澄清式推荐 Agent（DeepSeek）+ Gradio Web 界面
-- **报告**：`report.md`（英文，Q0–Q5 全部实验结果）
+**NTU AI6127 | Hybrid Retrieval-Augmented Generation System**
 
-### 当前进度
+- **Dataset:** McAuley Lab Amazon Reviews 2023 (`meta_Clothing_Shoes_and_Jewelry` / `meta_Home_and_Kitchen` / `meta_Toys_and_Games`)
+- **What it does:** field-level chunking + sparse retrieval (BM25) + dense retrieval (bge-m3 / FAISS) + parent-document merging + reciprocal rank fusion (RRF) + cross-encoder re-ranking + metadata/date filters + a multi-turn agent that asks clarifying questions before recommending (DeepSeek) + a Gradio web UI
+- **Report:** `report.md` (full write-up of Q0–Q5 with all results) and `report_latex/` (two-column paper version)
 
-| 部分 | 状态 |
+### Status
+
+| Part | Status |
 |---|---|
-| Q1 知识库、Q2 检索与界面 | 完成 |
-| Q3 检索创新评测 | 完成（程序化相关性 + 人工相关性） |
-| Q4 评测集 | 完成：去重后 169 个场景、1,313 条记录（299 决策 + 1,014 相关性），三人独立标注；一致率 95.8%（相关性 94.9%） |
-| Q4 / Q5 多轮对话评测与消融 | 完成（15 个配置 × 169 段对话）；澄清决策指标已按人工金标准计算；LLM 评审与人工一致率 92.7%（κ 0.853） |
-| 报告剩余 TBD | 成员与学号、两个网盘链接 |
-| 报告图片 | `eval/figures/`：系统架构、界面截图、检索结果、消融结果 |
+| Q1 knowledge base, Q2 retrieval and UI | Done |
+| Q3 retrieval innovations | Done (programmatic and human relevance judgments) |
+| Q4 evaluation set | Done: 169 unique scenarios, 1,313 unique records (299 decision + 1,014 relevance), labelled independently by three annotators; agreement 95.8 % (relevance 94.9 %) |
+| Q4 / Q5 dialogue evaluation and ablation | Done (15 configurations × 169 dialogues); clarification-decision metrics against human gold; LLM judge vs. human agreement 92.7 % (κ 0.853) |
+| Report placeholders (TBD) | Members' names and matriculation numbers, the two download links |
+| Report figures | `eval/figures/`: architecture, UI screenshot, retrieval results, ablation results |
 
-## 项目目录结构
+## Repository structure
 
 ```text
 AI6127/
-├── dataset.py              # Q1：全量流式读取 + 蓄水池随机采样、过滤、清洗、去重、字段级切块、语料统计
-├── corpus.py               # 知识库统一读取（每个进程只加载一次）与 BM25 分词器
-├── attributes.py           # 商品结构化属性（品类、人群、年龄段、价格段、材质）与约束校验
-├── sparse_bm25.py          # BM25 稀疏检索（稀疏矩阵实现；chunk 合并到商品）
-├── build_faiss.py          # bge-m3 稠密向量索引（IndexFlatIP）；--unit chunk|product，--prompt
-├── hybrid_retriever.py     # search()：融合方式 / 元数据与时间过滤 / 重排序；父文档合并；分阶段计时
-├── reranker.py             # Q3：bge-reranker-v2-m3 交叉编码器重排序
-├── benchmark_queries.py    # Q2：五条查询的结果与查询速度
-├── eval_retrieval.py       # Q3：检索配置评测（P@5、R@10、MRR、nDCG、时间线实验）
-├── llm.py                  # DeepSeek 调用封装（JSON、重试、用量统计、思考模式开关）
-├── generator.py            # 证据整理（价格/评分来自 meta）、JSON 解析与引用校验
-├── agent.py                # Q4/Q5：多轮澄清式推荐 Agent（状态追踪、决策、检索、证据检查、生成、自检）
-├── simulator.py            # Q4/Q5：用户模拟器（只知道隐藏需求，不知道目标商品）
-├── run_dialogues.py        # Q4/Q5：多轮对话评测与消融
-├── evaluate_decisions.py   # Q4：澄清决策 P/R/F1
-├── rag_judge.py            # Q4：faithfulness / answer relevance / context precision
-├── build_scenarios.py      # Q4：生成评测场景
-├── build_annotation_set.py # Q4：标注记录与标注表（决策 + pooled 相关性）
-├── compute_iaa.py          # Q4：标注一致性与金标准
-├── app.py                  # Gradio 多轮对话界面
-├── dedup.py                # Q4：评测集去重（所有评测脚本只在去重后的集合上计算指标）
-├── report.md               # 作业报告（英文）
-├── report_latex/           # LaTeX 版报告（双栏论文格式，main.tex + figures/，用 XeLaTeX 编译，可直接上传 Overleaf）
+├── dataset.py              # Q1: streaming download + reservoir sampling, filtering, cleaning, de-duplication, field-level chunking, corpus statistics
+├── corpus.py               # shared loading of the knowledge base (once per process) and the BM25 tokenizer
+├── attributes.py           # structured product attributes (type, audience, age band, price band, material) and constraint checks
+├── sparse_bm25.py          # BM25 sparse retrieval (sparse-matrix implementation; chunks merged to products)
+├── build_faiss.py          # bge-m3 dense index (IndexFlatIP); --unit chunk|product, --prompt
+├── hybrid_retriever.py     # search(): fusion mode / metadata and date filters / re-ranking; parent-document merge; per-stage timing
+├── reranker.py             # Q3: bge-reranker-v2-m3 cross-encoder re-ranking
+├── benchmark_queries.py    # Q2: results and speed of five queries
+├── eval_retrieval.py       # Q3: retrieval evaluation (P@5, R@10, MRR, nDCG, timeline experiment)
+├── llm.py                  # DeepSeek wrapper (JSON mode, retries, usage and cache-hit accounting, thinking-mode switch)
+├── generator.py            # evidence formatting (price/rating from metadata), JSON parsing and citation validation
+├── agent.py                # Q4/Q5: multi-turn clarifying recommender (state tracking, decision, retrieval, evidence check, generation, self-check)
+├── simulator.py            # Q4/Q5: user simulator (knows the hidden need, never the target product)
+├── run_dialogues.py        # Q4/Q5: multi-turn dialogue evaluation and ablations
+├── evaluate_decisions.py   # Q4: clarification decision P/R/F1
+├── rag_judge.py            # Q4: faithfulness / answer relevance / context precision; judge calibration
+├── build_scenarios.py      # Q4: generates evaluation scenarios
+├── build_annotation_set.py # Q4: annotation records and sheets (decisions + pooled relevance)
+├── compute_iaa.py          # Q4: inter-annotator agreement and gold labels
+├── dedup.py                # Q4: de-duplication of the evaluation set (all metrics use the unique set)
+├── app.py                  # Gradio multi-turn chat interface
+├── report.md               # assignment report (English)
+├── report_latex/           # LaTeX report (two-column paper; main.tex + figures/; compile with XeLaTeX, ready for Overleaf)
 ├── eval/
-│   ├── scenarios/          # 评测场景（隐藏需求、开场白、对话快照）
-│   ├── annotation/         # 标注记录、标注表、标注指南、金标准、一致率报告
-│   ├── q2_benchmark/       # Q2 五条查询的结果与耗时
-│   ├── q3_retrieval/       # Q3 检索评测结果
-│   ├── figures/            # 报告插图（架构图、界面截图、检索与消融结果图）
-│   ├── q4_decisions/       # Q4 澄清决策评测结果
-│   └── q5_runs/            # Q4/Q5 多轮对话记录与消融汇总
+│   ├── scenarios/          # evaluation scenarios (hidden need, opening message, dialogue snapshots)
+│   ├── annotation/         # annotation records, sheets, guidelines, gold labels, agreement report
+│   ├── q2_benchmark/       # Q2 results and timings of the five queries
+│   ├── q3_retrieval/       # Q3 retrieval results
+│   ├── figures/            # report figures (architecture, UI, retrieval and ablation charts)
+│   ├── q4_decisions/       # Q4 clarification-decision results
+│   └── q5_runs/            # Q4/Q5 dialogue logs and ablation summaries
 ├── data/
-│   ├── kb.json             # 商品级知识库：id、text（完整正文）、meta（价格、评分、评论数、店铺、类目、上架日期、品牌、材质、颜色、适用年龄、人群）
-│   ├── chunks.json         # chunk 级检索单元：chunk_id、parent_id、field（overview/description/specs）、text
-│   ├── kb_pyserini.jsonl   # chunk 级语料（Pyserini 格式）
-│   ├── corpus_stats.json   # 语料统计（Q1 报告用）
-│   ├── faiss_chunk.bin     # chunk 级向量索引（build_faiss.py 生成）
-│   ├── faiss_chunk.json    # 索引说明：模型、检索单元、是否加前缀、精度、向量对应的 chunk id
-│   └── faiss_product.*     # 商品级索引（--unit product，Q3 消融：不切块）
-│                           # 注意：*.bin 超过 GitHub 100 MB 单文件上限，已在 .gitignore 中排除，需本地重建或从共享网盘下载
-├── README.md
+│   ├── kb.json             # product-level knowledge base: id, text (full product text), meta (price, rating, review count, store, categories, release date, brand, material, colour, recommended age, department)
+│   ├── chunks.json         # chunk-level retrieval units: chunk_id, parent_id, field (overview/description/specs), text
+│   ├── kb_pyserini.jsonl   # chunk-level corpus in Pyserini format
+│   ├── corpus_stats.json   # corpus statistics (for Q1)
+│   ├── faiss_chunk.bin     # chunk-level vector index (built by build_faiss.py)
+│   ├── faiss_chunk.json    # index sidecar: model, unit, prefix setting, precision, chunk-id order
+│   └── faiss_product.*     # product-level index (--unit product; Q3 ablation without chunking)
+│                           # note: *.bin files exceed GitHub's 100 MB limit and are git-ignored; rebuild locally or download from the shared drive
+├── README.md               # this file (English)
+├── README_zh.md            # Chinese version
 └── requirements.txt
 ```
 
-## 环境配置与依赖安装
+## Setup
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### GPU / Apple Silicon（强烈推荐）
+### GPU / Apple Silicon (strongly recommended)
 
-`build_faiss.py` 自动选择 CUDA → Apple Silicon（MPS）→ CPU，GPU 上用 fp16（与 fp32 向量余弦相似度 ≥ 0.9998）。编码 48,107 个 chunk：Apple M5（MPS，fp16）实测 20.3 分钟，NVIDIA GPU 更快，CPU 需十小时以上。Apple Silicon 上自动改用 eager attention（PyTorch 的 SDPA 在 MPS 上会持续泄漏显存导致 OOM）。检查 CUDA：
+`build_faiss.py` picks CUDA → Apple Silicon (MPS) → CPU automatically and encodes in fp16 on GPUs (cosine similarity to fp32 vectors ≥ 0.9998). Encoding the 48,107 chunks took 20.3 minutes on an Apple M5 (MPS, fp16); an NVIDIA GPU is faster, a CPU takes more than ten hours. On Apple Silicon the script switches to eager attention, because PyTorch's SDPA keeps leaking memory on MPS and eventually runs out of memory. Check CUDA:
 
 ```bash
-python -c "import torch; print(torch.cuda.is_available())"   # 需输出 True
+python -c "import torch; print(torch.cuda.is_available())"   # should print True
 ```
 
-若为 `False`（装成了 CPU 版 torch），需**强制重装** CUDA 版（RTX 50 系 / Blackwell 架构需 CUDA 12.8+）：
+If it prints `False` (a CPU build of torch is installed), **force-reinstall** the CUDA build (RTX 50 series / Blackwell needs CUDA 12.8+):
 
 ```bash
 pip install torch --index-url https://download.pytorch.org/whl/cu128 --force-reinstall --no-deps
 ```
 
-## 问题一（Question 1）：知识库构建
+## Question 1: Knowledge base
 
-**任务目标**：基于 Amazon 2023 三个商品分类的元数据构建商品知识语料库，并切成适合检索与生成的 passage。
+**Goal:** build a product knowledge corpus from the Amazon 2023 metadata of three categories and split it into passages suitable for retrieval and generation.
 
-### 构建流程
+### Pipeline
 
-1. **数据来源**：以下三个分类的 `.jsonl.gz`（[原始数据直链](https://mcauleylab.ucsd.edu/public_datasets/data/amazon_2023/raw/meta_categories/)）
-   - `meta_Clothing_Shoes_and_Jewelry.jsonl.gz`（7,218,481 个商品）
-   - `meta_Home_and_Kitchen.jsonl.gz`（3,735,584 个商品）
-   - `meta_Toys_and_Games.jsonl.gz`（890,874 个商品）
-2. **流式加载**：逐行流式读取完整的压缩文件，不落盘，每个分类都扫描全部商品。
-3. **过滤**：`title`、`features`、`description`、`categories`、`details`、`price`、`average_rating`、`rating_number`、`store` 全部非空才保留（清洗后再校验一次）。合格商品：服装 835,390（11.6%）、家居 749,624（20.1%）、玩具 268,771（30.2%）。
-4. **随机采样**：对每个分类的**全部**合格商品做蓄水池抽样（reservoir sampling，种子 `42`），每个合格商品被抽中的概率相同。原来“读到前 1 万个合格商品就停止”只覆盖文件开头一段：服装类文件开头 3 万条的合格率是 25%，而全量只有 11.6%，说明文件开头的商品分布与整体不同。
-5. **清洗**：
-   - 去 HTML 标签（174 个字段）与 HTML 实体（15 个字段）、emoji 和装饰符号（7,186 个字段）；
-   - 规格字段去掉对检索无意义的噪声：Best Sellers Rank（8,710 个商品）、Date First Available（8,972）、Item model number（8,451）、Is Discontinued（5,226）等，并且不再把 Python dict/list 原样写进文本；
-   - 卖点、描述去重；Manufacturer 与 Brand 相同时只保留一个。
-6. **去重**：`parent_asin` 去重，标准化标题去重（跨分类；去掉 10 个同名商品）。
-7. **文档格式**：正文 `text` 只包含语义字段（标题、类目、卖点、描述、规格）；价格、评分、评论数、店铺、类目存入结构化 `meta`，避免稀释向量，并直接用于生成证据与网页展示。
-8. **字段级切块**：每个商品切成若干 chunk，每个 chunk 都以商品标题开头，保证脱离上下文后仍可理解：
-   - `overview`：标题 + 类目 + 卖点（卖点超过 200 词则分组）
-   - `description`：标题 + 描述（200 词窗口、40 词重叠）
-   - `specs`：标题 + 规格
+1. **Source:** the `.jsonl.gz` files of three categories ([raw data](https://mcauleylab.ucsd.edu/public_datasets/data/amazon_2023/raw/meta_categories/))
+   - `meta_Clothing_Shoes_and_Jewelry.jsonl.gz` (7,218,481 products)
+   - `meta_Home_and_Kitchen.jsonl.gz` (3,735,584 products)
+   - `meta_Toys_and_Games.jsonl.gz` (890,874 products)
+2. **Streaming:** the compressed files are read line by line without saving them; every product of every category is scanned.
+3. **Filtering:** a product is kept only if `title`, `features`, `description`, `categories`, `details`, `price`, `average_rating`, `rating_number` and `store` are all non-empty (checked again after cleaning). Valid products: clothing 835,390 (11.6 %), home 749,624 (20.1 %), toys 268,771 (30.2 %).
+4. **Random sampling:** reservoir sampling (seed `42`) over **all** valid products of each category, so every valid product has the same probability of being chosen. The earlier approach (stop after the first 10,000 valid products) only covered the beginning of each file, and the beginning is not representative: the first 30,000 clothing products are 25 % valid versus 11.6 % overall.
+5. **Cleaning:**
+   - HTML tags (174 fields) and entities (15 fields), emoji and decorative symbols (7,186 fields) removed;
+   - noisy specification keys that do not help retrieval dropped: Best Sellers Rank (8,710 products), Date First Available (8,972), Item model number (8,451), Is Discontinued (5,226), etc.; Python dicts/lists are no longer written into the text verbatim;
+   - duplicate bullet points and description lines removed; Manufacturer dropped when equal to Brand.
+6. **De-duplication:** by `parent_asin` and by normalised title across categories (10 duplicates removed).
+7. **Document format:** `text` holds only semantic fields (title, categories, features, description, specifications). Price, rating, review count, store and categories go to structured `meta`, so they do not dilute embeddings and can be used directly for evidence headers and display.
+8. **Field-level chunking:** each product is split into chunks that all start with the product title, so they stay understandable out of context:
+   - `overview`: title + categories + features (grouped if features exceed 200 words)
+   - `description`: title + description (200-word windows with 40-word overlap)
+   - `specs`: title + specifications
 
-   检索在 chunk 上进行，再按商品取最高分合并（父文档检索），生成时使用完整商品正文。
+   Retrieval scores chunks and merges them to products by the best chunk (parent-document retrieval); generation uses the full product text.
 
-### 语料统计（`data/corpus_stats.json`）
+### Corpus statistics (`data/corpus_stats.json`)
 
-| 指标 | 数值 |
+| Metric | Value |
 |---|---|
-| 文档（商品）数 | 15,000（三个分类各 5,000） |
-| chunk 数 | 48,107（overview 16,483 / description 16,609 / specs 15,015） |
-| 词数 | 3,589,422（按空格切分的商品正文） |
-| types（不重复词） | 60,141（小写、只保留字母数字）；按空格原样切分为 212,432 |
-| 每个商品词数 | 平均 239，中位数 203，p95 508，最长 2,040 |
-| 每个 chunk 词数 | 平均 88，最长 421 |
+| Documents (products) | 15,000 (5,000 per category) |
+| Chunks | 48,107 (overview 16,483 / description 16,609 / specs 15,015) |
+| Words | 3,589,422 (whitespace tokens of the product text) |
+| Types (unique words) | 60,141 (lower-cased, alphanumeric only); 212,432 with raw whitespace tokens |
+| Words per product | mean 239, median 203, p95 508, max 2,040 |
+| Words per chunk | mean 88, max 421 |
 
-### 运行 Q1
+### Run Q1
 
 ```bash
-python dataset.py                     # 完整构建，约 15 分钟（下载约 7.7 GB 压缩数据）
-python dataset.py --max-scan 50000    # 快速测试：每个分类只扫描前 N 条
+python dataset.py                     # full build, about 15 minutes (downloads about 7.7 GB of compressed data)
+python dataset.py --max-scan 50000    # quick test: scan only the first N products per category
 ```
 
-**运行后预期输出**：
+**Expected output:**
 
 ```text
 ✅ Corpus built. Documents: 15000, chunks: 48107, total words: 3589422, types: 60141
 ```
 
-## 问题二（Question 2）：混合检索系统与 Web 演示界面
+## Question 2: Hybrid retrieval and web interface
 
-**检索流水线**：查询 → BM25（chunk）与 bge-m3 / FAISS（chunk）分别检索 → 各自按商品取最高分合并 → RRF 融合 → 商品级 Top-k（附命中的字段与两路名次）。
+**Retrieval pipeline:** query → BM25 (chunks) and bge-m3 / FAISS (chunks) → each merged to products by their best chunk → RRF fusion → top-k products (with the matched field and both ranks).
 
-### 核心组件说明
+### Components
 
-| 模块 | 实现 | 作用 |
+| Module | Implementation | Purpose |
 | :--- | :--- | :--- |
-| **稀疏检索（BM25）** | 自实现 Okapi BM25（k1=1.5, b=0.75），权重预先存入稀疏矩阵，查询时只对查询词所在列求和；分词为小写、只保留字母数字、去停用词 | 精确关键词匹配。相比原来的 `rank_bm25` + `split()`：`Waterproof`/`waterproof`、`hiking.`/`Hiking` 等不再匹配失败；每次查询约 1 ms（原来约 100 ms） |
-| **稠密检索（FAISS）** | `BAAI/bge-m3`（1024 维）+ `IndexFlatIP`（向量归一化，等价余弦相似度），chunk 级索引 | 语义匹配，处理同义表达 |
-| **父文档合并** | 两路检索都在 chunk 上打分，按商品取最高分（MaxP） | 短 chunk 匹配更精准，返回仍以商品为单位，生成时使用完整商品信息 |
-| **倒数秩融合（RRF）** | k=60，每路取前 20 个商品 | 综合词汇与语义匹配 |
-| **Gradio 界面** | `app.py` | 输入查询，展示生成回答、推荐商品（标题、价格、评分）、证据、命中字段与各阶段耗时 |
+| **Sparse retrieval (BM25)** | Own Okapi BM25 (k1 = 1.5, b = 0.75) with pre-computed weights in a sparse matrix; a query only sums the columns of its terms. Tokenizer: lower-casing, alphanumerics only, stop-word removal | Exact keyword matching. Compared with the original `rank_bm25` + `split()`, `Waterproof`/`waterproof` and `hiking.`/`Hiking` now match; about 0.3 ms per query (previously about 100 ms) |
+| **Dense retrieval (FAISS)** | `BAAI/bge-m3` (1024-d) + `IndexFlatIP` (normalised vectors, i.e. cosine similarity), chunk-level index | Semantic matching of paraphrases |
+| **Parent-document merge** | Both retrievers score chunks; a product gets the score of its best chunk (MaxP) | Short chunks match precisely while results stay product-level; generation uses the full product |
+| **Reciprocal rank fusion (RRF)** | k = 60, top 20 products from each retriever | Combines lexical and semantic matching |
+| **Gradio interface** | `app.py` | Chat with the assistant; shows answers, recommended products (title, price, rating), evidence, matched fields and per-stage timing |
 
-### 运行 Q2
+### Run Q2
 
 ```bash
-python build_faiss.py                 # 构建 chunk 级向量索引（需 GPU / Apple Silicon）
-python hybrid_retriever.py            # 终端测试
-python benchmark_queries.py           # 五条查询的结果与查询速度 → eval/q2_benchmark/
-python app.py                         # 启动网页
+python build_faiss.py                 # build the chunk-level vector index (GPU / Apple Silicon)
+python hybrid_retriever.py            # terminal test
+python benchmark_queries.py           # results and speed of five queries → eval/q2_benchmark/
+python app.py                         # start the web interface
 ```
 
-### 五条查询的速度（`eval/q2_benchmark/`）
+### Speed of the five queries (`eval/q2_benchmark/`)
 
-Apple M5（MPS，fp16），检索 48,107 个 chunk，预热后每条查询重复 10 次取中位数：
+Apple M5 (MPS, fp16), 48,107 chunks, warm, median of 10 runs per query:
 
-| 阶段 | 耗时 |
+| Stage | Time |
 |---|---|
-| BM25（稀疏矩阵） | 0.2–0.3 ms |
-| query 编码（bge-m3） | 16.4–16.7 ms |
-| FAISS 搜索（IndexFlatIP，暴力精确搜索） | 1.6 ms |
-| RRF 融合 | < 0.1 ms |
-| **总计** | **18.2–18.6 ms** |
-| 加交叉编码器重排序（前 20 个商品） | 约 0.69 s（169 条评测查询的平均值） |
+| BM25 (sparse matrix) | 0.2–0.3 ms |
+| Query encoding (bge-m3) | 16.4–16.7 ms |
+| FAISS search (IndexFlatIP, exact) | 1.6 ms |
+| RRF fusion | < 0.1 ms |
+| **Total** | **18.2–18.6 ms** |
+| With cross-encoder re-ranking (top 20 products) | about 0.69 s (mean over the 169 evaluation queries) |
 
-商品级索引（`RETRIEVAL_UNIT=product`）查询总耗时约 53 ms（单次测量）。
+With the product-level index (`RETRIEVAL_UNIT=product`) a query takes about 53 ms in total (single measurement).
 
-五条查询的 Top-5 结果（标题、类目、价格、评分、命中字段、两路名次）见 `eval/q2_benchmark/summary.md` 与 `results.json`。首次查询还需加载模型（约 10 秒）与 GPU 预热，`app.py` 启动时已自动预热。
+Top-5 results of the five queries (title, category, price, rating, matched field, both ranks) are in `eval/q2_benchmark/summary.md` and `results.json`. The first query also loads the models (about 10 s) and warms up the GPU; `app.py` warms up at start-up.
 
-## 问题三（Question 3）：检索与排序创新
+## Question 3: Retrieval and ranking innovations
 
-`hybrid_retriever.search()` 统一支持以下选项，`eval_retrieval.py` 在评测场景上逐项比较：
+`hybrid_retriever.search()` supports all of the following options; `eval_retrieval.py` compares them on the evaluation scenarios:
 
-| 方向 | 实现 | 开关 |
+| Direction | Implementation | Switch |
 |---|---|---|
-| 1. 混合融合 | BM25-only / dense-only / RRF / 加权 RRF | `fusion="bm25"/"dense"/"rrf"/"weighted"`, `weights=(w_bm25, w_dense)` |
-| 2. 重排序 | `BAAI/bge-reranker-v2-m3` 交叉编码器（多语言）对融合后前 20 个商品重排（fp16，输入按 64 token 分桶补齐，避免 MPS 反复编译） | `rerank=True` |
-| 3. 时间线与元数据检索 | 价格、评分、类目、上架日期、人群/年龄/材质作为结构化硬过滤；过滤后结果不足时由 agent 逐级放宽 | `filters={"price_max", "rating_min", "category", "date_after", "date_before", "predicate"}` |
-| 4. 多语言检索 | bge-m3 与重排序模型都支持中文查询英文商品；对比“中文直接检索”与“LLM 翻译成英文后检索” | `zh:*` / `zh→en:*` 配置 |
-| 5. 切块与索引 | 字段级 chunk + 父文档合并 vs 商品级索引；BM25 分词；BGE 指令前缀 | `RETRIEVAL_UNIT=chunk/product`、`BGE_PROMPT=0/1` |
+| 1. Hybrid fusion | BM25 only / dense only / RRF / weighted RRF | `fusion="bm25"/"dense"/"rrf"/"weighted"`, `weights=(w_bm25, w_dense)` |
+| 2. Re-ranking | multilingual cross-encoder `BAAI/bge-reranker-v2-m3` re-ranks the top 20 fused products (fp16; inputs padded to 64-token buckets to avoid repeated MPS recompilation) | `rerank=True` |
+| 3. Timeline and metadata search | price, rating, category, release date and audience/age/material as structured hard filters; the agent relaxes them step by step if too few results remain | `filters={"price_max", "rating_min", "category", "date_after", "date_before", "predicate"}` |
+| 4. Multilingual search | bge-m3 and the re-ranker accept Chinese queries against English products; we compare direct Chinese retrieval with LLM translation to English first | `zh:*` / `zh→en:*` configurations |
+| 5. Chunking and indexing | field-level chunks + parent-document merge vs. product-level index; BM25 tokenisation; BGE instruction prefix | `RETRIEVAL_UNIT=chunk/product`, `BGE_PROMPT=0/1` |
 
 ```bash
-python eval_retrieval.py                                   # chunk 级索引：全部配置 + 时间线实验
+python eval_retrieval.py                                   # chunk-level index: all configurations + timeline experiment
 RETRIEVAL_UNIT=product python eval_retrieval.py --tag product --configs bm25 dense rrf rrf+rerank --no-timeline
 ```
 
-评测：查询为每个场景的完整需求（英文/中文）；指标为 P@5、R@10、MRR@10、nDCG@10 与延迟。相关性有两种：程序化（知识库中满足隐藏需求全部硬约束的商品，覆盖完整，可算召回）与人工标注的 pooled 候选（`gold_relevance.csv`）。结果在 `eval/q3_retrieval/summary.md`。
+Evaluation: the query is the complete need of each scenario (English/Chinese); metrics are P@5, R@10, MRR@10, nDCG@10 and latency. There are two kinds of relevance: programmatic (every product in the catalogue that satisfies all hard constraints of the hidden need; complete, so recall is defined) and human-labelled pooled candidates (`gold_relevance.csv`). Results are in `eval/q3_retrieval/summary.md`.
 
-### Q3 主要结果（169 条英文查询；P@5 / nDCG@10 为程序化相关性，人工 P@5 只统计已标注商品）
+### Main Q3 results (169 English queries; P@5 / nDCG@10 use programmatic relevance, human P@5 counts judged products only)
 
-| 配置 | P@5 | nDCG@10 | 人工 P@5 | 延迟 |
+| Configuration | P@5 | nDCG@10 | Human P@5 | Latency |
 |---|---|---|---|---|
 | BM25 | 0.369 | 0.381 | 0.618 | 0.3 ms |
-| Dense（bge-m3） | 0.420 | 0.421 | 0.624 | 22 ms |
+| Dense (bge-m3) | 0.420 | 0.421 | 0.624 | 22 ms |
 | RRF | 0.440 | 0.438 | 0.605 | 20 ms |
-| 加权 RRF（BM25 权重 0.5） | 0.451 | 0.449 | 0.635 | 20 ms |
-| RRF + 重排序 | 0.499 | 0.494 | 0.676 | 688 ms |
-| RRF + 元数据过滤 | 0.656 | 0.660 | 0.862 | 22 ms |
-| RRF + 重排序 + 过滤 | **0.698** | **0.705** | **0.895** | 787 ms |
-| 商品级索引：RRF + 重排序 + 过滤 | **0.715** | **0.718** | **0.901** | 842 ms |
-| 中文直接检索（dense / RRF） | 0.151 / 0.075 | 0.154 / 0.078 | 0.360 / 0.335 | — |
-| 中文 → LLM 翻译成英文 → RRF + 重排序 | 0.496 | 0.484 | 0.676 | 780 ms |
+| Weighted RRF (BM25 weight 0.5) | 0.451 | 0.449 | 0.635 | 20 ms |
+| RRF + re-ranking | 0.499 | 0.494 | 0.676 | 688 ms |
+| RRF + metadata filters | 0.656 | 0.660 | 0.862 | 22 ms |
+| RRF + re-ranking + filters | **0.698** | **0.705** | **0.895** | 787 ms |
+| Product-level index: RRF + re-ranking + filters | **0.715** | **0.718** | **0.901** | 842 ms |
+| Chinese query, direct (dense / RRF) | 0.151 / 0.075 | 0.154 / 0.078 | 0.360 / 0.335 | — |
+| Chinese query → LLM translation → RRF + re-ranking | 0.496 | 0.484 | 0.676 | 780 ms |
 
-- 程序化相关性与人工标签一致率 79.9%（κ 0.60），偏严格；两种相关性给出的配置排序基本一致。
-- 时间线：把“2021 年以后”写进查询文本，日期满足率只有 21.4%；改为日期过滤后为 100%。
-- 中文直接检索效果差，先翻译成英文再检索即可达到英文查询水平；Agent 因此用英文检索、用用户的语言回答。
-- 商品级索引略好于字段级切块（需求类查询的信息集中在标题和类目），切块的价值主要在于给生成器提供可引用的字段证据。
+- Programmatic relevance agrees with the human labels on 79.9 % of pairs (κ 0.60) and is stricter; both rank the configurations in almost the same order.
+- Timeline: writing "released after 2021" into the query text gives only 21.4 % results that meet the date; a date filter gives 100 %.
+- Direct Chinese retrieval is weak; translating to English first reaches the quality of English queries, so the agent retrieves in English and answers in the user's language.
+- The product-level index is slightly better than field-level chunks (need-style queries are answered by the title and category path); chunks mainly help by giving the generator citable field-level evidence.
 
-## 问题四（Question 4）：多轮澄清式推荐与评测
+## Question 4: Multi-turn clarifying recommendation and evaluation
 
-**任务**：用户与助手多轮对话；用户一开始的描述往往不完整（“想买双鞋”），助手判断信息是否足够，不够就反问，够了再基于检索证据推荐，并给出引用。
+**Task:** the user and the assistant talk over several turns. The first message is often incomplete ("I want some shoes"); the assistant decides whether it knows enough, asks a question if not, and otherwise recommends products based on retrieved evidence, with citations.
 
-**Agent 每一轮**（`agent.py`）：状态追踪 + 查询改写 → 混合检索（过滤 + 重排）→ 决策（反问 / 推荐 / 无匹配）→ 证据充分性检查 → 有据生成 → 论断级自检。
+**Every agent turn** (`agent.py`): state tracking + query rewriting → hybrid retrieval (filters + re-ranking) → decision (ask / recommend / nothing matches) → evidence sufficiency check → grounded generation → claim-level self-check.
 
-### 配置 API
+### API configuration
 
 ```bash
 export DEEPSEEK_API_KEY=sk-...
-export DEEPSEEK_MODEL=deepseek-flash      # 以 https://api-docs.deepseek.com 上的模型名为准
-export JUDGE_MODEL=deepseek-v4-pro        # 可选：评判模型，建议与生成模型不同
+export DEEPSEEK_MODEL=deepseek-flash      # use the model name listed at https://api-docs.deepseek.com
+export JUDGE_MODEL=deepseek-v4-pro        # optional: judge model, ideally different from the generator
 ```
 
-deepseek-flash 默认开启思考模式（`temperature` 失效、输出不可复现、每次多出数百推理 token），本项目默认关闭（`llm.py`）；设置 `DEEPSEEK_THINKING=enabled` 或使用 `*+thinking` 配置可开启。
+deepseek-flash enables thinking (reasoning) mode by default, which ignores `temperature`, makes outputs non-reproducible and adds hundreds of reasoning tokens per call. This project disables it by default (`llm.py`); set `DEEPSEEK_THINKING=enabled` or use a `*+thinking` configuration to turn it on.
 
-### 评测集（按用户场景）
+### Evaluation set (scenario-based)
 
 ```bash
-python build_scenarios.py --per-domain 60     # 180 个场景（三个领域各 60）→ eval/scenarios/scenarios.jsonl
-python build_annotation_set.py --annotators A B C   # 标注记录与标注表 → eval/annotation/（需 GPU 检索）
-python compute_iaa.py                         # 一致率、Cohen's κ、Fleiss' κ，金标准
+python build_scenarios.py --per-domain 60     # 180 scenarios (60 per domain) → eval/scenarios/scenarios.jsonl
+python build_annotation_set.py --annotators A B C   # annotation records and sheets → eval/annotation/ (needs GPU retrieval)
+python compute_iaa.py                         # agreement, Cohen's κ, Fleiss' κ, gold labels
 ```
 
-- **场景**：隐藏完整需求（品类、人群/孩子年龄/材质、预算）+ 开场白（模糊 / 部分 / 完整三档，英文或中文），以知识库中真实商品为锚点生成，保证至少 3 个商品满足需求。
-- **标注记录**：每个场景 2 个对话快照（该问还是该推荐、该问什么）+ 6 个 pooled 候选商品（多种检索配置的结果 pooling 后，判断是否满足需求），共生成 1,440 条。标注指南见 `eval/annotation/GUIDELINES.md`。
-- **去重**（`python dedup.py`）：11 个场景与之前的场景隐藏需求相同，另有 39 个对话快照文本完全相同（如 "I need a toy."），去掉后剩 169 个场景、299 条决策记录、1,014 条相关性记录，共 **1,313 条**（清单在 `eval/annotation/eval_set_unique.json`）。所有评测脚本都只在去重后的集合上计算；已有结果可用 `--rescore` / `--resummarize` 不调用 API 重新汇总。
+- **Scenario:** a hidden complete need (product type, audience / child age / material, budget) + an opening message at one of three levels (vague / partial / complete, in English or Chinese), anchored on a real catalogue product and satisfiable by at least 3 products.
+- **Annotation records:** 2 dialogue snapshots per scenario (should the agent ask or recommend, and what to ask about) + 6 pooled candidate products (pooled from several retrieval configurations; does the product satisfy the need), 1,440 records generated. Guidelines: `eval/annotation/GUIDELINES.md`.
+- **De-duplication** (`python dedup.py`): 11 scenarios repeat an earlier hidden need and 39 further snapshots repeat an earlier dialogue verbatim (e.g. "I need a toy."). After removing them, 169 scenarios, 299 decision records and 1,014 relevance records remain, **1,313 records** in total (listed in `eval/annotation/eval_set_unique.json`). All evaluation scripts compute metrics on the unique set; existing results can be re-summarised without API calls via `--rescore` / `--resummarize`.
 
-### 运行评测
+### Run the evaluation
 
 ```bash
-python evaluate_decisions.py                  # 澄清决策 P/R/F1、追问属性准确率 → eval/q4_decisions/
-python run_dialogues.py --configs full B0 --workers 6   # 用户模拟器多轮对话 → eval/q5_runs/
+python evaluate_decisions.py                  # clarification decision P/R/F1, attribute accuracy → eval/q4_decisions/
+python run_dialogues.py --configs full B0 --workers 6   # user-simulator dialogues → eval/q5_runs/
 python rag_judge.py --configs full B0         # faithfulness / answer relevance / context precision
-python app.py                                 # 多轮对话网页
+python app.py                                 # multi-turn web interface
 ```
 
-- **用户模拟器**（`simulator.py`）：只知道隐藏需求，不知道目标商品（避免泄题）；只回答被问到的属性；推荐失败时指出一个被违反的约束；最多 5 轮。成功 = 前 3 个推荐中至少一个满足全部硬约束（程序化判断）。
-- **标注一致性**（`eval/annotation/iaa_report.json`，去重后）：该问/该推荐 98.7%（Fleiss' κ 0.969）；问哪个属性 86.6%（0.812）；相关性 94.9%（0.897）；全部 1,313 条 95.8%（0.913）。经过一轮指南澄清（一位标注者复查了标为“品类不符”的记录），相关性一致率由第一轮的 79.9% 提高到 94.9%；金标准取三人多数票，前后不变。
-- **澄清决策**（299 个对话快照，人工金标准）：熵方法 P/R/F1 = 0.803 / 1.000 / 0.891；LLM 判断 0.973 / 0.711 / 0.822；LLM + 思考模式 0.972 / 0.838 / 0.900。规则方法与人工完全一致（标注指南本身就是该规则）。
-- **LLM 评审校准**（`python rag_judge.py --calibrate`）：在 1,014 条人工标注上，LLM 评审的相关性判断一致率 92.7%，κ 0.853。
-- **完整 Agent**：成功率 0.876，首次推荐成功率 0.852，约束违反率 0.372，faithfulness 0.998，每轮延迟 p50 3.85 s，每 1,000 段对话成本约 $1.34（deepseek-flash 非高峰价、按账单约 40% 缓存命中率估算；整个项目全部实验的实际账单为 $4.61）。
-- **指标**：成功率、首次推荐成功率、平均轮数、提问数、有效提问率、完整需求下的过度追问率、约束违反率、自检支持率、每轮延迟、每段对话的 LLM 调用数与成本；RAGAS 式 faithfulness、answer relevance、context precision。
+- **User simulator** (`simulator.py`): knows the hidden need but never the target product (no answer leakage); answers only what is asked; after a failed recommendation it names one violated constraint; at most 5 turns. Success = at least one of the top-3 recommendations satisfies every hard constraint (checked programmatically).
+- **Inter-annotator agreement** (`eval/annotation/iaa_report.json`, unique set): ask vs. recommend 98.7 % (Fleiss' κ 0.969); which attribute to ask about 86.6 % (0.812); relevance 94.9 % (0.897); all 1,313 records 95.8 % (0.913). After one round of guideline clarification (one annotator re-checked the records labelled "wrong product type"), relevance agreement rose from 79.9 % in the first round to 94.9 %; the gold labels (majority vote of three) were unchanged.
+- **Clarification decision** (299 snapshots, human gold): entropy criterion P/R/F1 = 0.803 / 1.000 / 0.891; LLM judgement 0.973 / 0.711 / 0.822; LLM + thinking mode 0.972 / 0.838 / 0.900. The rule-based decision matches the human labels exactly (the guidelines encode that rule).
+- **LLM judge calibration** (`python rag_judge.py --calibrate`): on the 1,014 human-labelled pairs the judge's relevance verdicts agree with the gold labels 92.7 % of the time (κ 0.853).
+- **Full agent:** success 0.876, first-recommendation success 0.852, constraint violation rate 0.372, faithfulness 0.998, per-turn latency p50 3.85 s, about $1.34 per 1,000 dialogues (deepseek-flash off-peak prices with the ~40 % context-cache hit rate seen on the bill; all experiments of the project cost $4.61 in total).
+- **Metrics:** success rate, first-recommendation success, average turns, questions asked, useful-question rate, over-asking on complete openings, constraint violation rate, self-check supported-claim rate, per-turn latency, LLM calls and cost per dialogue; RAGAS-style faithfulness, answer relevance and context precision.
 
-## 问题五（Question 5）：下游任务创新与消融
+## Question 5: Downstream innovations and ablation
 
-| 创新点 | 内容 | 对应开关（`agent.AgentConfig`） |
+| Innovation | Description | Switch (`agent.AgentConfig`) |
 |---|---|---|
-| I1 澄清决策 + 信息增益选问 | 何时问：规则 / LLM 判断 / 候选分布熵；问什么：熵最大的属性（选项来自候选中最常见的取值） | `clarify`, `select` |
-| I2 查询改写 + 约束→元数据过滤 | 对话改写成独立英文查询（同时处理中文）；预算、人群、年龄、材质转成硬过滤，结果不足时逐级放宽 | `rewrite`, `filters` |
-| I3 证据充分性检查 + 论断级自检 | CRAG 式：程序化校验硬约束 + LLM 判断候选是否匹配，不足则补检索或如实告知；生成后逐条核对论断，价格用 meta 核对 | `check` |
-| I4（可选）方面级推荐理由 | 每个推荐按用户关心的方面给出证据或“未说明” | `aspects` |
+| I1 Clarification decision + information-gain question selection | When to ask: rule / LLM judgement / entropy of the candidate distribution; what to ask: the attribute with the highest entropy (options are its most frequent values among the candidates) | `clarify`, `select` |
+| I2 Query rewriting + constraint-to-filter mapping | the dialogue is rewritten into a standalone English query (also handles Chinese); budget, audience, age and material become hard filters, relaxed step by step if too few results remain | `rewrite`, `filters` |
+| I3 Evidence sufficiency check + claim-level self-check | CRAG-style: hard constraints checked programmatically + LLM check that candidates match, retrieve again or say honestly that nothing fits; after generation every claim is verified, prices against metadata | `check` |
+| I4 (optional) Aspect-level reasons | each recommendation explains the aspects the user cares about, citing evidence or saying "not stated" | `aspects` |
 
 ```bash
 python run_dialogues.py --configs B0 B1 B2 B3 B4 full full-I1 full-I2 full-I3 --workers 6
 python run_dialogues.py --configs clarify-rule clarify-llm select-llm select-random full+thinking
 ```
 
-配置定义见 `agent.CONFIGS`：B0（单轮 RAG，拼接历史）→ B1（+改写）→ B2（+LLM 澄清）→ B3（+熵选问）→ B4（+过滤）→ full（+证据检查与自检）；`full-I*` 为逐项去掉。所有配置共用同一检索（RRF + 重排序），差异只来自 Q5 创新点。结果在 `eval/q5_runs/summary.md`（LLM 评审结果在 `judge_summary.json`）。
+Configurations are defined in `agent.CONFIGS`: B0 (single-turn RAG, history concatenated) → B1 (+ rewriting) → B2 (+ LLM clarification) → B3 (+ entropy question selection) → B4 (+ filters) → full (+ evidence check and self-check); `full-I*` removes one innovation at a time. All configurations share the same retrieval (RRF + re-ranking), so differences come only from the Q5 innovations. Results are in `eval/q5_runs/summary.md` (LLM judge results in `judge_summary.json`).
 
-### Q5 消融结果（169 个场景，用户模拟器，最多 5 轮）
+### Q5 ablation results (169 scenarios, user simulator, at most 5 turns)
 
-| 配置 | 成功率 | 首次推荐成功 | 提问数 | 约束违反率 | Faithfulness | 成本 / 千段对话 |
+| Configuration | Success | First-rec. success | Questions | Violation rate | Faithfulness | Cost / 1k dialogues |
 |---|---|---|---|---|---|---|
-| B0 单轮 RAG | 0.793 | 0.438 | 0 | 0.727 | 0.993 | $0.73 |
-| B1 + 改写 | 0.852 | 0.485 | 0 | 0.697 | 0.995 | $0.92 |
-| B2 + LLM 澄清 | 0.858 | 0.763 | 1.22 | 0.558 | — | $0.80 |
-| B3 + 熵决策与选问 | 0.828 | 0.805 | 2.11 | 0.424 | — | $0.77 |
-| B4 + 元数据过滤 | 0.882 | 0.864 | 2.11 | 0.372 | 0.993 | $0.74 |
-| full + 证据检查与自检 | 0.876 | 0.852 | 2.11 | 0.372 | **0.998** | $1.34 |
-| full − I1（不澄清） | 0.586 | 0.485 | 0 | 0.580 | — | $1.13 |
+| B0 single-turn RAG | 0.793 | 0.438 | 0 | 0.727 | 0.993 | $0.73 |
+| B1 + rewriting | 0.852 | 0.485 | 0 | 0.697 | 0.995 | $0.92 |
+| B2 + LLM clarification | 0.858 | 0.763 | 1.22 | 0.558 | — | $0.80 |
+| B3 + entropy decision and selection | 0.828 | 0.805 | 2.11 | 0.424 | — | $0.77 |
+| B4 + metadata filters | 0.882 | 0.864 | 2.11 | 0.372 | 0.993 | $0.74 |
+| full + evidence check and self-check | 0.876 | 0.852 | 2.11 | 0.372 | **0.998** | $1.34 |
+| full − I1 (no clarification) | 0.586 | 0.485 | 0 | 0.580 | — | $1.13 |
 | full − I2 | 0.852 | 0.834 | 2.11 | 0.369 | — | $1.23 |
 | full − I3 | 0.888 | 0.864 | 2.11 | 0.383 | 0.995 | $0.74 |
-| full + 思考模式 | 0.893 | 0.864 | 2.13 | **0.332** | — | $1.77 |
+| full + thinking mode | 0.893 | 0.864 | 2.13 | **0.332** | — | $1.77 |
 
-主要结论：
-- **澄清（I1）是核心**：去掉后成功率从 0.876 降到 0.586。
-- **约束转过滤（I2）**：主要降低违反率（B3 → B4：0.424 → 0.372）。
-- **熵方法的不足**：会过度追问，用户开场已说全需求时有一半情况仍追问；规则决策的有效提问率为 0.965，成功率相当。用熵挑选问哪个属性，与随机挑选效果相同。
-- **证据检查与自检（I3）**：不提高成功率，但 faithfulness 最高，并能在没有匹配商品时如实告知。
-- **方面级理由（I4）**：没有帮助，保留为可选。
+Main findings:
+- **Clarification (I1) is the core:** without it success drops from 0.876 to 0.586.
+- **Constraint-to-filter mapping (I2)** mainly reduces violations (B3 → B4: 0.424 → 0.372).
+- **Limits of the entropy criterion:** it over-asks — when the opening already states the full need, it still asks in half of the cases; the rule-based decision has a useful-question rate of 0.965 with similar success. Choosing the attribute by entropy is no better than choosing a random missing attribute.
+- **Evidence check and self-check (I3)** do not raise success but give the highest faithfulness and let the agent say honestly when nothing matches.
+- **Aspect-level reasons (I4)** did not help and remain optional.
 
-## 团队协作说明（Notes for Teammates）
+## Notes for teammates
 
-- **Windows 兼容性**：由于 Pyserini 依赖 Java 环境且在 Windows 下容易引发编译报错，本项目跳过 Pyserini，用 scikit-learn + SciPy 稀疏矩阵自实现 BM25（`kb_pyserini.jsonl` 仍按 Pyserini 格式输出，便于对照）。
-- **直接流式读取**：不依赖 Hugging Face `datasets`，直接通过直链流式读取原始 JSONL 文件。
-- **数据集中管理**：所有生成的语料与向量索引统一存放在 `data/` 目录下。
-- **文档唯一标识**：使用 Amazon 元数据中的 `parent_asin` 作为每件商品的唯一检索文档 ID（`docid`）。
-- **索引一致性**：`hybrid_retriever.py` 会检查索引说明文件（`data/faiss_<unit>[_prompt].json`）中的模型、检索单元、是否加前缀与当前配置一致，不一致直接报错，避免建索引与查询编码方式不同。
-- **断点续编**：`build_faiss.py` 按片编码，每 4 片保存一次断点（`*.partial.npz`），中断后重跑会接着编码；Apple Silicon 上每片后释放 MPS 缓存，避免显存持续增长导致 OOM。
-- **评测集**：生成 1,440 条、去重后 1,313 条（`dedup.py`），标注结果在 `eval/annotation/sheet_A/B/C.xlsx`。修改标注后依次运行 `compute_iaa.py`、`evaluate_decisions.py --rescore`、`eval_retrieval.py --rescore`、`rag_judge.py --calibrate --rescore`，人工标签指标会自动写入各自的汇总文件。
-- **报告插图**：`eval/figures/`；结果图由 `eval/figures/charts.py` 生成，架构图 `fig_architecture.svg` 由 `eval/figures/arch_svg.py` 生成。
-- **API Key**：只放在本地环境变量（如 `~/.zshrc`），不要提交到仓库。
-- **HF Hub 警告说明**：终端若出现关于未认证 Hugging Face Hub Token 的警告，仅为请求速率限制提醒，不影响演示系统的正常运行。
+- **Windows compatibility:** Pyserini needs Java and often fails to build on Windows, so the project skips it and implements BM25 with scikit-learn + SciPy sparse matrices (`kb_pyserini.jsonl` is still written in Pyserini format for comparison).
+- **Direct streaming:** no dependency on Hugging Face `datasets`; the raw JSONL files are streamed from their direct links.
+- **Central data folder:** all generated corpora and vector indexes live in `data/`.
+- **Document ID:** the Amazon `parent_asin` is the unique retrieval document ID (`docid`) of each product.
+- **Index consistency:** `hybrid_retriever.py` checks that the index sidecar (`data/faiss_<unit>[_prompt].json`) matches the current model, retrieval unit and prefix setting and stops with an error otherwise, so the index and query encodings cannot diverge.
+- **Resumable encoding:** `build_faiss.py` encodes in slices and saves a checkpoint every 4 slices (`*.partial.npz`); a rerun continues where it stopped. On Apple Silicon the MPS cache is cleared after every slice to avoid running out of memory.
+- **Evaluation set:** 1,440 records generated, 1,313 after de-duplication (`dedup.py`); the labels are in `eval/annotation/sheet_A/B/C.xlsx`. After changing labels, run `compute_iaa.py`, `evaluate_decisions.py --rescore`, `eval_retrieval.py --rescore` and `rag_judge.py --calibrate --rescore`; the human-label metrics are written to the respective summaries.
+- **Report figures:** `eval/figures/`; result charts are produced by `eval/figures/charts.py` and the architecture diagram `fig_architecture.svg` by `eval/figures/arch_svg.py`.
+- **API key:** keep it in a local environment variable (e.g. `~/.zshrc`); never commit it.
+- **HF Hub warning:** a warning about an unauthenticated Hugging Face Hub token only concerns rate limits and does not affect the demo.
