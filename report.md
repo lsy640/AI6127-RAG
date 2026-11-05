@@ -330,10 +330,6 @@ Sub-ablations of I1 and options (full agent with one component changed):
 - Evaluation scenarios were drafted with LLM assistance and then reviewed and labelled independently by humans; agreement is computed on the human labels only.
 - Human relevance labels cover only the pooled products (6 per scenario), so human retrieval metrics are computed on judged products and favour the configurations that built the pool.
 
-## Team contributions
-
-TBD.
-
 ## References
 
 - Aliannejadi et al. *ConvAI3: Generating Clarifying Questions for Open-Domain Dialogue Systems (ClariQ).* 2020.
